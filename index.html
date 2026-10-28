@@ -1,0 +1,2073 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Cargoflow Mgnt Tool</title>
+<style>
+:root{color-scheme:light;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+body{margin:0;font:14px/1.45 system-ui,-apple-system,"Segoe UI",sans-serif}
+img{max-width:100%}
+[hidden]{display:none!important}
+</style>
+</head>
+<body><link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: one operating column. Full round-voyage rotation on top (shared truth for both bounds), bound + role desk below. */
+/* Theme: Sea Hawk portal look. Dark-first navy, violet interaction, magenta route/tonnage, cyan reefer, gold markers. */
+:root{
+  --bg:#090D18; --surface:#10162A; --surface-2:#161D33; --ink:#E7EBF5; --muted:#8B94AD; --line:#232C45;
+  --accent:#7C6BFF; --accent-soft:#221E4A; --navy:#4F8DFF; --navy-soft:#16244A;
+  --ok:#22C55E; --ok-soft:#0F2E1E; --warn:#F5B83D; --warn-soft:#33280F; --bad:#F05252; --bad-soft:#3A1518;
+  --wt:#E04CF0; --wt-soft:#321539; --rf:#22D3EE; --rf-soft:#0E2D36;
+  --topbg:#0C1122; --topfg:#E7EBF5; --side:#0C1122; --glow:rgba(124,107,255,.45); --route:#D946EF; --gold:#FACC15; --brand:#E5262A;
+  --f-display:"Inter","Segoe UI",system-ui,sans-serif;
+  --f-body:"Inter","Segoe UI",system-ui,sans-serif;
+  --f-mono:"JetBrains Mono",ui-monospace,Consolas,monospace;
+  color-scheme:dark;
+}
+@media (prefers-color-scheme: light){:root:not([data-theme="dark"]){
+  --bg:#F3F5FA; --surface:#FFFFFF; --surface-2:#F0F3F9; --ink:#121828; --muted:#5D667D; --line:#DCE1EC;
+  --accent:#5B4BE0; --accent-soft:#ECE9FF; --navy:#2563EB; --navy-soft:#E3ECFF;
+  --ok:#15803D; --ok-soft:#DCF5E5; --warn:#A16207; --warn-soft:#FBF0D5; --bad:#C62828; --bad-soft:#FCE1E1;
+  --wt:#A21CAF; --wt-soft:#F7E3FA; --rf:#0E7490; --rf-soft:#DDF4F8;
+  --topbg:#FFFFFF; --topfg:#121828; --side:#FFFFFF; --glow:rgba(91,75,224,.22); --route:#C026D3; --gold:#CA8A04; color-scheme:light}}
+:root[data-theme="light"]{
+  --bg:#F3F5FA; --surface:#FFFFFF; --surface-2:#F0F3F9; --ink:#121828; --muted:#5D667D; --line:#DCE1EC;
+  --accent:#5B4BE0; --accent-soft:#ECE9FF; --navy:#2563EB; --navy-soft:#E3ECFF;
+  --ok:#15803D; --ok-soft:#DCF5E5; --warn:#A16207; --warn-soft:#FBF0D5; --bad:#C62828; --bad-soft:#FCE1E1;
+  --wt:#A21CAF; --wt-soft:#F7E3FA; --rf:#0E7490; --rf-soft:#DDF4F8;
+  --topbg:#FFFFFF; --topfg:#121828; --side:#FFFFFF; --glow:rgba(91,75,224,.22); --route:#C026D3; --gold:#CA8A04; color-scheme:light}
+
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:15px;line-height:1.45}
+/* Landscape: use the full screen width; on wide screens secondary panels sit side by side. */
+.wrap{width:100%;max-width:2200px;margin:0 auto;padding-inline:24px;padding-block:0 48px}
+h1,h2,h3{font-family:var(--f-display);font-stretch:85%;margin:0;text-wrap:balance;letter-spacing:.01em}
+h2{font-size:1.25rem;font-weight:750}
+h3{font-size:1rem;font-weight:700}
+code,.mono{font-family:var(--f-mono);font-size:.82em}
+.num{font-variant-numeric:tabular-nums;text-align:right}
+.muted{color:var(--muted)}
+.eyebrow{font-family:var(--f-display);font-stretch:80%;text-transform:uppercase;letter-spacing:.09em;font-size:.72rem;font-weight:700;color:var(--muted)}
+
+/* app shell: sidebar + top KPI bar */
+.shell{display:grid;grid-template-columns:232px minmax(0,1fr);min-height:100vh}
+.side{position:sticky;top:env(safe-area-inset-top,0px);align-self:start;height:100vh;overflow-y:auto;background:var(--side);border-right:1px solid var(--line);padding:16px 14px;display:flex;flex-direction:column;gap:12px}
+.logo{display:flex;align-items:center;gap:10px;padding:2px 4px 10px;border-bottom:1px solid var(--line)}
+.pil-logo{width:92px;height:auto;display:block;flex:none}
+:root{--logo-blue:#2A6FE0}
+.pil{font-family:var(--f-display);font-weight:900;font-style:italic;font-size:1.5rem;letter-spacing:.02em;color:var(--brand);line-height:1}
+.pil i{display:inline-block;width:14px;height:3px;background:var(--navy);margin-right:4px;vertical-align:middle;border-radius:2px;box-shadow:0 5px 0 var(--navy),0 -5px 0 var(--navy)}
+.side-sec{font-size:.68rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);padding:6px 4px 0}
+#nav{display:flex;flex-direction:column;gap:4px}
+#nav a{display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:9px;color:var(--ink);text-decoration:none;font-size:.88rem;font-weight:500;border:1px solid transparent}
+#nav a::before{content:"";width:6px;height:6px;border-radius:50%;background:var(--muted);flex:none}
+#nav a:hover{background:var(--surface-2)}
+#nav a.on{border-color:var(--accent);background:var(--accent-soft);box-shadow:0 0 14px var(--glow)}
+#nav a.on::before{background:var(--accent);box-shadow:0 0 8px var(--accent)}
+.side .field{gap:5px}
+.side select{width:100%}
+.main{min-width:0;display:flex;flex-direction:column}
+.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:6;background:var(--topbg);color:var(--topfg);border-bottom:1px solid var(--line)}
+.top-in{padding:10px 24px;display:flex;flex-wrap:wrap;gap:12px 28px;align-items:center;justify-content:space-between}
+.brand{display:flex;gap:12px;align-items:center}
+.brand-ic{width:38px;height:38px;border-radius:50%;display:grid;place-items:center;background:radial-gradient(circle at 35% 35%,var(--navy),var(--accent-soft) 70%);box-shadow:0 0 16px var(--glow);color:#fff;font-size:1rem}
+.brand h1{font-size:1.05rem;font-weight:700;color:var(--topfg);letter-spacing:0}
+.brand span{display:block;font-size:.66rem;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);font-weight:600;margin-top:2px}
+/* KPI strip: one soft box of equal tiles with hairline dividers, taking the space between title and theme toggle */
+.kpis{flex:1 1 640px;min-width:0;display:grid;grid-template-columns:repeat(auto-fit,minmax(108px,1fr));border:1px solid var(--line);border-radius:12px;background:var(--surface-2);overflow:hidden}
+.kpi{display:flex;flex-direction:column;justify-content:center;gap:3px;min-width:0;padding:9px 16px;box-shadow:-1px 0 0 var(--line)}
+.kpi span{font-size:.62rem;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);font-weight:600;white-space:nowrap}
+.kpi b{font-size:.98rem;font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap}
+.kpi span{overflow:hidden;text-overflow:ellipsis;letter-spacing:.08em!important}
+.kpi b{font-size:1.05rem!important;line-height:1.2}
+.kpi b small{display:block;font-size:.74rem;font-weight:600;margin-left:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.seg{display:inline-flex;gap:2px;padding:3px;border:1px solid var(--line);border-radius:999px;background:var(--surface-2)}
+.seg button{border:0;border-radius:999px;background:transparent;color:var(--muted);padding:5px 12px;font-size:.82rem}
+.seg button[aria-pressed="true"]{background:var(--accent-soft);color:var(--ink);box-shadow:0 0 0 1px var(--accent),0 0 12px var(--glow)}
+.seg button:hover{color:var(--ink);background:transparent}
+.seg .dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px;vertical-align:middle}
+.side .seg{display:flex}.side .seg button{flex:1}
+[id]{scroll-margin-top:84px}
+@media (max-width:900px){
+  .shell{grid-template-columns:1fr}
+  .side{position:static;height:auto;border-right:0;border-bottom:1px solid var(--line)}
+  #nav{flex-direction:row;flex-wrap:wrap}
+}
+
+select,input{font:inherit;color:var(--ink);background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:6px 8px;min-width:0}
+input[type=number]{width:5.4em;text-align:right;font-variant-numeric:tabular-nums}
+input.mt{width:6.2em}
+input::placeholder{color:var(--muted)}
+select:focus-visible,input:focus-visible,button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+button{font:inherit;font-weight:600;cursor:pointer;border-radius:6px;border:1px solid var(--line);background:var(--surface);color:var(--ink);padding:6px 12px;transition:background .15s, transform .1s}
+button:hover{background:var(--surface-2)}
+button:active{transform:scale(.97)}
+button.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+button.primary:hover{filter:brightness(1.06);background:var(--accent)}
+button.danger{border-color:var(--bad);color:var(--bad)}
+button.danger.armed{background:var(--bad);color:#fff}
+button.ghost{background:transparent;border-color:transparent;color:var(--muted);padding:4px 8px}
+button.ghost:hover{color:var(--bad);background:var(--bad-soft)}
+button:disabled{opacity:.45;cursor:not-allowed;transform:none}
+button.primary{box-shadow:0 0 14px var(--glow)}
+.panel{border-radius:12px!important}
+.route{background-color:var(--surface);background-image:radial-gradient(var(--line) 1px,transparent 1px);background-size:16px 16px}
+.leg .arrow{height:0;border-top:2px dashed var(--route);margin:4px 0;font-size:0;opacity:.85}
+.call.load{box-shadow:0 0 0 1px transparent}
+.call .nm::before{content:"";display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--gold);box-shadow:0 0 8px var(--gold);margin-right:6px;vertical-align:middle}
+.call.other .nm::before{background:var(--muted);box-shadow:none}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+
+.voyage{display:flex;flex-wrap:wrap;gap:8px 28px;align-items:flex-end;justify-content:space-between;padding-block:22px 14px}
+.voyage h2{font-size:1.7rem;font-weight:800}
+.voyage .facts{display:flex;gap:22px;flex-wrap:wrap}
+.fact b{display:block;font-family:var(--f-display);font-stretch:85%;font-size:1.25rem;font-variant-numeric:tabular-nums;line-height:1.15}
+.fact b small{display:block;font-size:.8rem;font-weight:600;color:var(--wt)}
+.fact.rff b{color:var(--rf)} .fact.rff b small{color:var(--rf)}
+.sample{display:inline-block;font-size:.72rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;background:var(--warn-soft);color:var(--warn);padding:2px 8px;border-radius:99px;vertical-align:middle;margin-left:6px}
+
+/* rotation strip */
+.route{overflow-x:auto;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:14px}
+.route-key{display:flex;gap:16px;flex-wrap:wrap;font-size:.78rem;color:var(--muted);margin-bottom:10px}
+.route-key i{display:inline-block;width:12px;height:6px;border-radius:2px;margin-right:5px;vertical-align:middle}
+.calls{display:flex;align-items:stretch;list-style:none;margin:0;padding:0;min-width:max-content}
+.call{width:160px;padding:10px 12px;border-radius:8px;border:1px solid var(--line);background:var(--surface-2);display:flex;flex-direction:column;gap:3px}
+.call.load{border-top:3px solid var(--navy)}
+.call.dis{border-top:3px solid var(--accent)}
+.call.load.dis{border-top:3px solid var(--navy);box-shadow:inset 0 -3px 0 var(--accent)}
+.call.other{opacity:.5;border-style:dashed}
+.call.me{outline:2px solid var(--accent);outline-offset:1px;background:var(--accent-soft)}
+.call .nm{font-family:var(--f-display);font-stretch:85%;font-weight:750;font-size:1.02rem}
+.call .ln{font-size:.78rem;color:var(--muted)}
+.call .ln b{color:var(--ink)}
+.call .ln.rfl{color:var(--rf)}
+.call .ln.dl{border-top:1px dashed var(--line);padding-top:3px;margin-top:2px}
+.call .fd{font-size:.74rem;color:var(--navy);background:var(--navy-soft);border-radius:4px;padding:2px 6px;margin-top:2px}
+.leg{width:116px;display:flex;flex-direction:column;justify-content:center;gap:3px;padding:0 8px;font-size:.72rem;color:var(--muted)}
+.leg .lb{text-align:center;line-height:1.25}
+.leg .lb b{color:var(--ink)}
+.leg .lb.over b{color:var(--bad)}
+.leg .lb.rfl b{color:var(--rf)}
+.legbar{height:5px;border-radius:3px;background:var(--line);overflow:hidden;display:flex}
+.legbar i{display:block;height:100%}
+.legbar .b{background:var(--navy)} .legbar .a{background:var(--navy);opacity:.35}
+.legbar.mtb .b{background:var(--wt)} .legbar.mtb .a{background:var(--wt);opacity:.35}
+.legbar.rfb .b{background:var(--rf)} .legbar.rfb .a{background:var(--rf);opacity:.35}
+.legbar.over .a,.legbar.over .b{background:var(--bad);opacity:1}
+.leg .arrow{text-align:center;color:var(--muted);font-size:1rem;line-height:1}
+
+.meter{display:inline-block;width:100%;height:6px;border-radius:3px;background:var(--line);overflow:hidden;vertical-align:middle}
+.meter i{display:block;height:100%;background:var(--navy);border-radius:3px}
+.meter.mtm i{background:var(--wt)}
+.meter.rfm i{background:var(--rf)}
+.meter.full i{background:var(--ok)} .meter.over i{background:var(--bad)}
+.chip{display:inline-flex;align-items:center;gap:4px;font-size:.74rem;font-weight:700;padding:2px 8px;border-radius:99px;white-space:nowrap}
+.chip.open{background:var(--navy-soft);color:var(--navy)}
+.chip.full{background:var(--ok-soft);color:var(--ok)}
+.chip.wfull{background:var(--wt-soft);color:var(--wt)}
+.chip.closed{background:var(--surface-2);color:var(--muted);border:1px solid var(--line)}
+.chip.over{background:var(--bad-soft);color:var(--bad)}
+.chip.ts{background:var(--accent-soft);color:var(--accent)}
+.chip.direct{background:var(--ok-soft);color:var(--ok)}
+.chip.rfc{background:var(--rf-soft);color:var(--rf)}
+.tag{font-size:.72rem;font-weight:700;border-radius:4px;padding:0 5px;white-space:nowrap}
+.tag.rel{background:var(--surface-2);color:var(--muted);border:1px solid var(--line)}
+.tag.pool{background:var(--accent-soft);color:var(--accent)}
+.wt{color:var(--wt)}
+.rft{color:var(--rf)}
+
+.grid{display:grid;grid-template-columns:repeat(12,1fr);gap:18px;margin-top:18px}
+.panel{grid-column:span 12;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:18px;min-width:0;display:flex;flex-direction:column;gap:14px}
+.panel.half{grid-column:span 6}
+.panel.third{grid-column:span 4}
+.panel.two3{grid-column:span 8}
+@media (max-width:960px){.panel.half,.panel.third,.panel.two3{grid-column:span 12}}
+@media (min-width:1500px){.panel.wide-half{grid-column:span 6}}
+.ph{display:flex;justify-content:space-between;align-items:baseline;gap:8px 16px;flex-wrap:wrap}
+.ph p{margin:4px 0 0;color:var(--muted);font-size:.9rem;max-width:75ch}
+
+.tbl-wrap{overflow-x:auto;margin-inline:-4px}
+table{border-collapse:collapse;width:100%;font-size:.9rem}
+th{font-family:var(--f-display);font-stretch:85%;font-weight:700;font-size:.78rem;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);text-align:left;padding:8px;border-bottom:1px solid var(--line);white-space:nowrap}
+th.num{text-align:right}
+th small{display:block;text-transform:none;letter-spacing:0;font-weight:500;font-family:var(--f-body)}
+td{padding:8px;border-bottom:1px solid var(--line);vertical-align:top}
+tr.grp td{background:var(--navy-soft);color:var(--navy);border-bottom:none;padding:8px 10px}
+tr.grp td b{font-family:var(--f-display);font-stretch:85%;font-size:1rem}
+tr.grp .gsum{font-variant-numeric:tabular-nums;font-weight:600;margin-left:10px}
+tr.feeder td:first-child{padding-left:26px}
+tr.self td{background:var(--accent-soft)}
+.pname{font-weight:700}
+.pname small{display:block;font-weight:400;color:var(--muted);font-size:.78rem}
+.pod-cell{white-space:nowrap}
+.pod-cell .pair{display:flex;gap:4px;justify-content:flex-end}
+.pod-cell .val{font-variant-numeric:tabular-nums}
+.pod-cell .sub{display:block;font-size:.74rem;color:var(--muted);margin-top:3px}
+.na{color:var(--line);text-align:center}
+.util{min-width:130px}
+.util .u{display:grid;grid-template-columns:2.4em 1fr 2.8em;gap:6px;align-items:center;font-size:.74rem;color:var(--muted);font-variant-numeric:tabular-nums}
+
+.form{display:flex;flex-wrap:wrap;gap:10px 12px;align-items:flex-end}
+.field{display:flex;flex-direction:column;gap:4px;min-width:0}
+.field label{font-size:.78rem;font-weight:600;color:var(--muted)}
+.field.rfx label{color:var(--rf)}
+.hint{font-size:.88rem;padding:8px 12px;border-radius:6px;background:var(--surface-2);border-left:3px solid var(--navy);color:var(--ink);margin:0}
+.hint.ts{border-left-color:var(--accent)}
+.hint.ok{border-left-color:var(--ok)}
+.hint.heavy{border-left-color:var(--wt)}
+
+.mine{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px}
+.mcard{border:1px solid var(--line);border-radius:8px;padding:14px;display:flex;flex-direction:column;gap:6px;background:var(--surface-2)}
+.mcard.rfcard{background:var(--rf-soft);border-color:transparent}
+.mcard .bigs{display:flex;gap:18px;align-items:baseline;flex-wrap:wrap}
+.mcard .big{font-family:var(--f-display);font-stretch:85%;font-size:1.8rem;font-weight:800;line-height:1;font-variant-numeric:tabular-nums}
+.mcard .big small{font-size:.82rem;font-weight:600;color:var(--muted)}
+.mcard .big.wt small{color:var(--wt)}
+.mcard .big.rft small{color:var(--rf)}
+.mcard .ln{font-size:.8rem;color:var(--muted)}
+
+.dis-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:14px}
+.dcard{border:1px solid var(--line);border-radius:8px;padding:14px;display:flex;flex-direction:column;gap:10px}
+.split{display:flex;height:10px;border-radius:5px;overflow:hidden;background:var(--line)}
+.split i{display:block;height:100%}
+.split .d{background:var(--ok)} .split .t{background:var(--accent)}
+.drow{display:grid;grid-template-columns:auto 1fr auto;gap:2px 8px;align-items:baseline;font-size:.88rem;padding:5px 0;border-bottom:1px dashed var(--line)}
+.drow:last-child{border-bottom:none}
+.drow .from{grid-column:2 / 4;font-size:.75rem;color:var(--muted)}
+.drow .q{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+.drow .q small{display:block;color:var(--wt);font-size:.75rem}
+.drow .q small.rft{color:var(--rf)}
+
+.conn{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:14px}
+.conn-col{display:flex;flex-direction:column;gap:10px}
+.conn-hub{border:1px solid var(--line);border-radius:8px;padding:10px 12px}
+.conn-hub h3{display:flex;justify-content:space-between;gap:8px}
+.conn-hub ul{list-style:none;margin:6px 0 0;padding:0;display:flex;flex-direction:column;gap:4px;font-size:.86rem}
+.conn-hub li{display:flex;justify-content:space-between;gap:10px}
+.svc{font-family:var(--f-mono);font-size:.72rem;font-weight:600;background:var(--navy-soft);color:var(--navy);padding:1px 6px;border-radius:4px;white-space:nowrap}
+.svc.land{background:var(--surface-2);color:var(--muted);border:1px solid var(--line)}
+
+.pool-row{display:flex;flex-direction:column;gap:10px;padding:10px 12px;border:1px solid var(--line);border-radius:8px;background:var(--accent-soft)}
+.pool-row .what b{font-family:var(--f-display);font-stretch:85%;font-size:1.1rem}
+.empty{color:var(--muted);font-size:.9rem;padding:10px 0;margin:0}
+.log{list-style:none;margin:0;padding:0;font-size:.85rem;display:flex;flex-direction:column;gap:6px}
+.log li{display:flex;gap:10px}
+.log time{color:var(--muted);font-family:var(--f-mono);font-size:.75rem;white-space:nowrap;padding-top:2px}
+.note{font-size:.82rem;color:var(--muted);margin:0}
+
+/* frozen first column in every table */
+.tbl-wrap th:first-child,.tbl-wrap td:first-child{position:sticky;left:0;z-index:2;background:var(--surface);box-shadow:inset -1px 0 0 var(--line);min-width:200px}
+.tbl-wrap tr.self td:first-child{background:var(--accent-soft)}
+.tbl-wrap tr.grp td:first-child{position:static;background:var(--navy-soft);box-shadow:none}
+.tbl-wrap tr.sec td:first-child{position:static;background:var(--surface-2);box-shadow:none}
+tr.grp .gl{position:sticky;left:10px;display:inline-block;white-space:normal;max-width:min(1100px,82vw)}
+tr.sec td{background:var(--surface-2);font-family:var(--f-display);font-stretch:80%;text-transform:uppercase;letter-spacing:.08em;font-size:.74rem;font-weight:700;color:var(--muted);padding:6px 10px}
+th.cur{color:var(--accent)}
+.notice{border-left:4px solid var(--accent);background:var(--accent-soft);border-color:transparent;border-left-color:var(--accent)}
+.notice ul{margin:6px 0 0;padding-left:18px;display:flex;flex-direction:column;gap:4px;font-size:.92rem}
+.notice .eyebrow{color:var(--accent)}
+.lnk{color:var(--accent);font-weight:600;font-size:.88rem}
+
+.fo{color:var(--warn)!important;font-weight:700}
+.tag.req{background:var(--warn-soft);color:var(--warn)}
+.chip.warnc{background:var(--warn-soft);color:var(--warn)}
+.chip.okc{background:var(--ok-soft);color:var(--ok)}
+.hint.ask{border-left-color:var(--warn);display:flex;flex-wrap:wrap;gap:8px 12px;align-items:center}
+.acts{display:flex;gap:6px;flex-wrap:wrap}
+button.okb{border-color:var(--ok);color:var(--ok)}
+button.okb.armed{background:var(--ok);color:#fff}
+button.sm{padding:2px 8px;font-size:.74rem;border-radius:5px}
+/* board scrolls inside its own box so the sideways scrollbar is always in view; header row stays put */
+.tbl-wrap.scrolly{max-height:min(72vh,820px);overflow:auto;border:1px solid var(--line);border-radius:8px;margin-inline:0}
+.tbl-wrap.scrolly thead th{position:sticky;top:0;z-index:3;background:var(--surface);box-shadow:inset 0 -1px 0 var(--line)}
+.tbl-wrap.scrolly thead th:first-child{z-index:5}
+button.tog{margin-left:10px;padding:2px 10px;border-radius:999px;font-size:.74rem;font-weight:600;border:1px solid var(--navy);color:var(--navy);background:var(--surface)}
+button.tog:hover{background:var(--navy-soft)}
+tr.grp .chip{margin-left:6px}
+.alert-sum{display:flex;flex-wrap:wrap;gap:8px 28px;margin-top:8px}
+.alert-sum .stat{display:flex;flex-direction:column;gap:2px}
+.alert-sum .stat span{font-size:.66rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);font-weight:600}
+.alert-sum .stat b{font-size:1rem;font-variant-numeric:tabular-nums}
+details.fold summary{cursor:pointer;font-weight:600;font-size:.86rem;color:var(--accent);width:max-content}
+details.fold[open] summary{margin-bottom:8px}
+.notice .tbl-wrap td:first-child,.notice .tbl-wrap th:first-child{background:var(--accent-soft)}
+button.relb{color:var(--muted);border:1px dashed var(--line)}
+button.relb:hover{color:var(--bad);border-color:var(--bad)}
+.cell-acts{display:flex;flex-wrap:wrap;gap:4px;justify-content:flex-end;margin-top:5px}
+.dec{display:flex;flex-direction:column;gap:6px;text-align:left;white-space:normal;min-width:250px;max-width:340px;padding:10px;border:1px solid var(--warn);border-radius:8px;background:var(--warn-soft);font-size:.8rem}
+.dec-r{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+select.rsn{font-size:.78rem;padding:3px 6px;max-width:15em}
+table.ia td.hm{min-width:132px}
+table.ia td.hm input{width:4.6em;margin-top:4px;font-size:.78rem;padding:3px 5px}
+table.ia td.hm .pair,table.ia td .pair{justify-content:center}
+table.iaw td.hm{min-width:120px}
+table.iaw td.hm small{display:block}
+table.iaw td.hm .chip{margin-top:4px}
+table.iaw tr.tot td{border-bottom:2px solid var(--line)}
+.conn-d{display:block;font-size:.74rem;color:var(--muted)}
+.conn-hub li{align-items:center}
+.call.omit{opacity:.6;border-style:dashed;border-color:var(--bad)}
+.call.omit .nm{text-decoration:line-through}
+.call.omit::before{content:"Omitted";align-self:flex-start;font-size:.68rem;font-weight:700;color:var(--bad);background:var(--bad-soft);padding:1px 6px;border-radius:99px}
+table.heat td.hm{text-align:center;font-variant-numeric:tabular-nums;border:2px solid var(--surface)}
+table.heat td.hm b{display:block;font-size:.95rem}
+table.heat td.hm small{font-size:.72rem;color:var(--muted)}
+.hm0{background:var(--navy-soft)} .hm1{background:var(--ok-soft)} .hm2{background:var(--warn-soft)} .hm3{background:var(--bad-soft)} .hmn{color:var(--muted)}
+.hm-key{display:inline-block;width:12px;height:12px;border-radius:3px;vertical-align:middle;margin:0 4px 0 10px}
+.chip.dgc{background:var(--warn-soft);color:var(--warn)}
+.chip.oogc{background:var(--navy-soft);color:var(--navy)}
+input.ro{background:var(--surface-2);color:var(--muted);width:4.6em}
+.field.spx label{color:var(--warn)}
+.yn{display:block;padding:6px 8px;border-radius:6px;font-size:.78rem;line-height:1.35;background:var(--surface);border:1px solid var(--line)}
+.yn.ok{border-color:var(--ok);background:var(--ok-soft)}
+.yn.warn{border-color:var(--warn);background:var(--surface)}
+.ldd{color:var(--ok);font-weight:600}
+label.chk{display:flex;gap:6px;align-items:center;font-size:.85rem;font-weight:600}
+.relf{display:flex;flex-direction:column;gap:6px;text-align:left;white-space:normal;min-width:220px;max-width:300px;padding:10px;border:1px solid var(--bad);border-radius:8px;background:var(--bad-soft);font-size:.8rem}
+.dec-r label{font-weight:600;color:var(--ink)}
+.dec-h{line-height:1.35}
+.notice.okn{background:var(--ok-soft);border-left-color:var(--ok)}
+.notice.okn .eyebrow{color:var(--ok)}
+.notice.badn{background:var(--bad-soft);border-left-color:var(--bad)}
+.notice.badn .eyebrow{color:var(--bad)}
+
+#toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translate(-50%,20px);opacity:0;background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:8px;font-weight:600;font-size:.9rem;max-width:min(560px,calc(100vw - 32px));transition:opacity .2s, transform .2s;pointer-events:none;z-index:20}
+#toast.on{opacity:1;transform:translate(-50%,0)}
+#toast.err{background:var(--bad);color:#fff}
+</style>
+
+<div class="shell">
+  <aside class="side" aria-label="Navigation and voyage">
+    <div class="logo"><svg class="pil-logo" id="pil-logo" viewBox="0 0 170 53" role="img" aria-label="PIL"></svg><span class="muted" style="font-size:.72rem;line-height:1.2">Trade<br>Allocation</span></div>
+    <div class="side-sec">Navigation</div>
+    <nav id="nav"></nav>
+    <div class="side-sec">Voyage</div>
+    <div class="field"><label for="voy">Vessel</label><select id="voy"></select></div>
+    <div class="field"><label>Bound</label>
+      <div class="seg" id="bound-seg" role="group" aria-label="Bound">
+        <button type="button" id="bnd-WB" data-bound="WB">Westbound</button>
+        <button type="button" id="bnd-EB" data-bound="EB">Eastbound</button>
+      </div></div>
+    <div class="field"><label for="role">Viewing as</label><select id="role"></select></div>
+    <button id="reset" type="button">Reset sample</button>
+  </aside>
+  <div class="main">
+    <header class="top">
+      <div class="top-in">
+        <div class="brand"><div class="brand-ic" aria-hidden="true">⚓</div><div><h1>Slot Allocation Desk (BSA)</h1><span>Cargoflow · Allocation</span></div></div>
+        <div class="kpis" id="kpis"></div>
+        <div class="seg" id="theme-seg" role="group" aria-label="Theme">
+          <button type="button" data-ui="dark"><span class="dot" style="background:#7C6BFF"></span>Dark</button>
+          <button type="button" data-ui="light"><span class="dot" style="background:#FACC15"></span>Light</button>
+        </div>
+      </div>
+    </header>
+    <main class="wrap" id="app"></main>
+  </div>
+</div>
+<div id="toast" role="status" aria-live="polite"></div>
+
+<script>
+/* ================= PIL logo =================
+   Traced from the logo on pilship.com (170×53). The blue flag is three slanted bands cut by two wavy lines;
+   each wavy edge follows the same sine wave, shifted down and slightly left to match the slant. */
+(function drawLogo(){
+  const wave=(x,o)=>o+3.2-2.95*Math.sin(2*Math.PI*(x+0.234*o-5.5)/62);
+  const xl=y=>8.4-0.17*y, xr=y=>65.6-0.175*y;
+  const end=(o,side)=>{ let x=side<0?xl(wave(10,o)):xr(wave(50,o)); for(let i=0;i<20;i++) x=side<0?xl(wave(x,o)):xr(wave(x,o)); return [x,wave(x,o)]; };
+  const edge=o=>{ const p=[]; for(let x=-2;x<=68;x+=1){ const y=wave(x,o); if(x>xl(y)&&x<xr(y)) p.push([x,y]); } return p; };
+  const band=(t,b)=>'M'+[end(t,-1),...edge(t),end(t,1),end(b,1),...edge(b).reverse(),end(b,-1)].map(p=>p.map(v=>v.toFixed(1)).join(' ')).join('L')+'Z';
+  const pil='M72 4H104C109.5 4 112.6 8 112.3 14L111.6 24C110.9 33 104.5 38.8 95 39H81.2L79.6 50H64.2ZM85 17H95C96.8 17 96.8 20 96.3 22.2C95.8 24.5 94.6 25.7 92.6 25.7H83.4Z'
+          + 'M118 4H134L126.6 50H110.4ZM139 4H154.2L149.3 37H170.1L168.2 50H131.2Z';
+  document.getElementById('pil-logo').innerHTML =
+    `<path fill="#0072BC" d="${band(0,13)+band(17.3,30)+band(34.3,47)}"/><path fill="#ED1C24" fill-rule="evenodd" d="${pil}"/>`;
+})();
+
+/* ================= Master data (sample) ================= */
+// Slot dimensions allocated per POL→POD. Reefer is handled separately: plugs are a vessel BSA, optionally released per port.
+const DIMS = [{k:'teu',u:'TEU',label:'TEU'},{k:'mt',u:'MT',label:'Weight'}];
+
+const PORTS = {
+  CNSHA:'Shanghai', CNNGB:'Ningbo', CNSHK:'Shekou', SGSIN:'Singapore', MYWSP:'Port Klang (Westport)',
+  INNSA:'Nhava Sheva', INMUN:'Mundra', PKKHI:'Karachi',
+  CNZJG:'Zhangjiagang', CNNKG:'Nanjing', CNWHI:'Wuhu', CNWNZ:'Wenzhou', CNTAO:'Qingdao',
+  IDJKT:'Jakarta', IDSUB:'Surabaya', VNSGN:'Ho Chi Minh', THLCH:'Laem Chabang', IDBLW:'Belawan', MYPEN:'Penang',
+  INTKD:'ICD Tughlakabad', INLDH:'ICD Ludhiana', AEJEA:'Jebel Ali', KRPUS:'Busan'
+};
+// Full round voyage. SGSIN and MYWSP are called on both bounds.
+const ROT = [
+  {port:'CNSHA',eta:'2026-10-28'},{port:'CNNGB',eta:'2026-10-29'},{port:'CNSHK',eta:'2026-11-01'},
+  {port:'SGSIN',eta:'2026-11-06'},{port:'MYWSP',eta:'2026-11-07'},
+  {port:'INNSA',eta:'2026-11-14'},{port:'INMUN',eta:'2026-11-16'},{port:'PKKHI',eta:'2026-11-18'},
+  {port:'MYWSP',eta:'2026-11-26'},{port:'SGSIN',eta:'2026-11-27'},{port:'CNSHA',eta:'2026-12-04',next:true}
+];
+// feeders: ports with no call on this bound, joining at a load call. svc = connecting service, land = barge/rail/feeder mode.
+// onward: transhipment destinations after discharge at a POD.
+const BOUNDS = {
+  WB:{label:'Westbound', voy:'0412W', calls:[0,1,2,3,4,5,6,7], pols:['CNSHA','CNNGB','CNSHK','SGSIN','MYWSP'], pods:['SGSIN','MYWSP','INNSA','INMUN','PKKHI'], mtPerTeu:11,
+    feeders:{
+      CNSHA:[{port:'CNZJG',land:'Yangtze barge'},{port:'CNNKG',land:'Yangtze barge'},{port:'CNWHI',land:'Yangtze barge'}],
+      CNNGB:[{port:'CNWNZ',land:'Coastal feeder'},{port:'CNTAO',svc:'NPE'}],
+      SGSIN:[{port:'IDJKT',svc:'JKS'},{port:'IDSUB',svc:'JKS'},{port:'VNSGN',svc:'VCS'},{port:'THLCH',svc:'ITS'}],
+      MYWSP:[{port:'IDBLW',svc:'SPE'},{port:'MYPEN',svc:'WS2'}]
+    },
+    onward:{
+      SGSIN:[{port:'IDJKT',svc:'JKS'},{port:'IDSUB',svc:'JKS'},{port:'VNSGN',svc:'VCS'}],
+      MYWSP:[{port:'IDBLW',svc:'SPE'},{port:'MYPEN',svc:'WS2'}],
+      INNSA:[{port:'INTKD',land:'Rail'},{port:'INLDH',land:'Rail'}], INMUN:[{port:'AEJEA',svc:'WS6'}], PKKHI:[]
+    }
+  },
+  EB:{label:'Eastbound', voy:'0412E', calls:[5,6,7,8,9,10], pols:['INNSA','INMUN','PKKHI','MYWSP','SGSIN'], pods:['MYWSP','SGSIN','CNSHA'], mtPerTeu:20,
+    feeders:{
+      INNSA:[{port:'INTKD',land:'Rail'}], INMUN:[{port:'INLDH',land:'Rail'}],
+      MYWSP:[{port:'IDBLW',svc:'SPE'}], SGSIN:[{port:'IDJKT',svc:'JKS'},{port:'VNSGN',svc:'VCS'}]
+    },
+    onward:{
+      MYWSP:[{port:'IDBLW',svc:'SPE'},{port:'MYPEN',svc:'WS2'}],
+      SGSIN:[{port:'IDJKT',svc:'JKS'},{port:'IDSUB',svc:'JKS'},{port:'VNSGN',svc:'VCS'},{port:'THLCH',svc:'ITS'}],
+      CNSHA:[{port:'CNZJG',land:'Yangtze barge'},{port:'CNNKG',land:'Yangtze barge'},{port:'KRPUS',svc:'NPE'}]
+    }
+  }
+};
+const VESSEL = {name:'KOTA CONTOH', service:'CIX · China–India–Pakistan Express', cap:{teu:1800, mt:22500}, plugs:80, dgCap:60, oogCap:8};
+
+/* ================= Sample state ================= */
+function seed(){
+  const A = (b,port,pod,teu,mt)=>({b,port,pod,teu,mt});
+  const alloc = [
+    A('WB','CNSHA','SGSIN',40,480),A('WB','CNSHA','MYWSP',30,360),
+    A('WB','CNSHA','INNSA',150,1800),A('WB','CNSHA','INMUN',100,1200),A('WB','CNSHA','PKKHI',60,720),
+    A('WB','CNZJG','INNSA',30,360),A('WB','CNNKG','INMUN',20,240),
+    A('WB','CNNGB','SGSIN',30,360),A('WB','CNNGB','INNSA',120,1440),A('WB','CNNGB','INMUN',80,960),A('WB','CNNGB','PKKHI',40,480),
+    A('WB','CNWNZ','INNSA',20,240),
+    A('WB','CNSHK','MYWSP',20,240),A('WB','CNSHK','INNSA',100,1200),A('WB','CNSHK','INMUN',60,720),A('WB','CNSHK','PKKHI',40,480),
+    A('WB','SGSIN','MYWSP',10,120),A('WB','SGSIN','INNSA',60,720),A('WB','SGSIN','INMUN',40,480),
+    A('WB','IDJKT','INNSA',40,640),A('WB','IDJKT','INMUN',20,320),A('WB','VNSGN','INNSA',30,360),
+    A('WB','MYWSP','INNSA',50,600),A('WB','MYWSP','PKKHI',30,360),A('WB','IDBLW','INNSA',20,320),
+    A('EB','INNSA','MYWSP',80,1600),A('EB','INNSA','SGSIN',120,2400),A('EB','INNSA','CNSHA',200,4000),
+    A('EB','INTKD','SGSIN',20,420),A('EB','INTKD','CNSHA',60,1260),
+    A('EB','INMUN','MYWSP',60,1260),A('EB','INMUN','SGSIN',80,1680),A('EB','INMUN','CNSHA',160,3360),
+    A('EB','INLDH','CNSHA',40,880),
+    A('EB','PKKHI','MYWSP',40,880),A('EB','PKKHI','SGSIN',60,1320),A('EB','PKKHI','CNSHA',100,2200),
+    A('EB','MYWSP','SGSIN',20,300),A('EB','MYWSP','CNSHA',60,900),A('EB','IDBLW','CNSHA',20,320),
+    A('EB','SGSIN','CNSHA',80,1200),A('EB','IDJKT','CNSHA',30,450)
+  ];
+  // [bound, POL, POD, final dest, TEU, MT, reefer units (plugs), reefer TEU]
+  const bk = [
+    ['WB','CNSHA','SGSIN','SGSIN',30,330],['WB','CNSHA','SGSIN','IDJKT',10,110],['WB','CNSHA','MYWSP','MYWSP',20,220],['WB','CNSHA','MYWSP','IDBLW',10,110],
+    ['WB','CNSHA','INNSA','INNSA',70,770,6,12],['WB','CNSHA','INNSA','INTKD',30,330],['WB','CNSHA','INMUN','INMUN',60,660],['WB','CNSHA','INMUN','AEJEA',20,220],['WB','CNSHA','PKKHI','PKKHI',40,440],
+    ['WB','CNZJG','INNSA','INNSA',30,330],['WB','CNNKG','INMUN','INMUN',12,130],
+    ['WB','CNNGB','SGSIN','SGSIN',12,130,3,6],['WB','CNNGB','SGSIN','VNSGN',6,70],
+    ['WB','CNNGB','INNSA','INNSA',90,990],['WB','CNNGB','INNSA','INTKD',40,440,4,8],['WB','CNNGB','INMUN','INMUN',50,550],['WB','CNNGB','PKKHI','PKKHI',20,220],
+    ['WB','CNWNZ','INNSA','INNSA',10,110],
+    ['WB','CNSHK','MYWSP','MYWSP',8,90],['WB','CNSHK','MYWSP','MYPEN',4,45],
+    ['WB','CNSHK','INNSA','INNSA',60,660,8,16],['WB','CNSHK','INMUN','INMUN',30,330],['WB','CNSHK','PKKHI','PKKHI',10,110],
+    ['WB','SGSIN','MYWSP','MYWSP',4,50],['WB','SGSIN','INNSA','INNSA',30,360,5,10],['WB','SGSIN','INMUN','INMUN',10,120],
+    ['WB','IDJKT','INNSA','INNSA',40,640],['WB','IDJKT','INMUN','INMUN',8,128],['WB','VNSGN','INNSA','INLDH',12,150],
+    ['WB','MYWSP','INNSA','INNSA',20,240],['WB','IDBLW','INNSA','INNSA',6,90],
+    ['EB','INNSA','MYWSP','MYWSP',30,600],['EB','INNSA','MYWSP','IDBLW',20,400],['EB','INNSA','SGSIN','SGSIN',40,800,12,24],['EB','INNSA','SGSIN','IDJKT',5,100],['EB','INNSA','SGSIN','SGSIN',45,900],['EB','INNSA','CNSHA','CNSHA',110,2250,14,28],['EB','INNSA','CNSHA','CNZJG',40,800],
+    ['EB','INTKD','CNSHA','CNSHA',40,880],['EB','INTKD','SGSIN','IDSUB',10,210],
+    ['EB','INMUN','MYWSP','MYWSP',50,1180],['EB','INMUN','SGSIN','SGSIN',40,920],['EB','INMUN','SGSIN','VNSGN',30,680],['EB','INMUN','CNSHA','CNSHA',95,2560,10,20],['EB','INMUN','CNSHA','KRPUS',30,800],
+    ['EB','INLDH','CNSHA','CNSHA',30,690],
+    ['EB','PKKHI','MYWSP','MYWSP',30,660],['EB','PKKHI','SGSIN','SGSIN',25,560,6,12],['EB','PKKHI','SGSIN','IDJKT',15,340],['EB','PKKHI','CNSHA','CNSHA',80,1800],
+    ['EB','MYWSP','SGSIN','SGSIN',10,150],['EB','MYWSP','CNSHA','CNSHA',40,600,8,16],['EB','IDBLW','CNSHA','CNSHA',12,190],
+    ['EB','SGSIN','CNSHA','CNSHA',50,750],['EB','SGSIN','CNSHA','KRPUS',10,150],['EB','IDJKT','CNSHA','CNSHA',20,300]
+  ];
+  const n={};
+  const bookings = bk.map(([b,port,pod,fpd,teu,mt,rf=0,rfTeu=0])=>{ n[port]=(n[port]||0)+1; return {id:uid(),b,ref:port.slice(2)+(b==='WB'?'W':'E')+String(4100+n[port]*37),port,pod,fpd,teu,mt,rf,rfTeu,dg:0,oog:0,lost:0}; });
+  bookings.forEach(x=>Object.assign(x,eqOf(x)));
+  // A few special-cargo bookings: [POL, POD, DG units, IMO class, OOG units]. Each OOG unit loses 2 TEU of slots.
+  [['CNSHA','INNSA',3,3,0],['CNNGB','INMUN',2,8,0],['CNSHK','PKKHI',0,0,1],['INNSA','CNSHA',4,9,0],['INMUN','SGSIN',0,0,2],['PKKHI','CNSHA',2,3,0],['SGSIN','INNSA',1,6,0]].forEach(([p,d,dg,c,oog])=>{
+    const x=bookings.find(y=>y.port===p&&y.pod===d); if(!x) return;
+    if(dg){ x.dg=dg; x.dgc=c; }
+    if(oog){ x.oog=oog; x.lost=oog*2; x.teu+=x.lost; }
+  });
+  return {
+    alloc, bookings,
+    released:{'WB|CNSHA|INNSA':{teu:50,mt:700},'WB|CNSHA|INMUN':{teu:20,mt:320},'WB|CNSHA|PKKHI':{teu:20,mt:280}},
+    closed:{'WB|CNSHA':true},
+    claims:[{id:uid(),b:'WB',from:'CNSHA',port:'CNNGB',pod:'INNSA',teu:20,mt:220}],
+    forecast:{}, requests:[], notices:[], extra:[], contracts:[], ruleRuns:{}, sched:{omit:{},delay:{},moved:{},blank:false},
+    // Intra-Asia onward limits. onCap: max TEU from one port of load into one onward destination. svcCap: max intake per connecting service at the hub.
+    onCap:{'EB|INNSA|IDJKT':{teu:5,mt:100},'EB|PKKHI|IDJKT':{teu:20,mt:450},'EB|INMUN|VNSGN':{teu:30,mt:700},'EB|INNSA|IDBLW':{teu:25,mt:500},'WB|CNSHA|AEJEA':{teu:20,mt:240}},
+    svcCap:{'EB|SGSIN|JKS':{teu:40,mt:850},'EB|SGSIN|VCS':{teu:40,mt:900},'EB|MYWSP|SPE':{teu:30,mt:620}},
+    // Reefer plug BSA released to individual ports. Ports not listed book from the vessel's free plugs.
+    rfAlloc:{'WB|CNSHA':6,'WB|CNNGB':15,'WB|SGSIN':10,'EB|INNSA':40,'EB|PKKHI':10},
+    log:[
+      {t:'27 Oct 18:00',m:'Westbound: Shanghai cut-off. 90 TEU / 1,300 MT and 14 reefer plugs released.'},
+      {t:'28 Oct 09:12',m:'Westbound: Ningbo took 20 TEU / 220 MT from the Shanghai pool for Nhava Sheva.'}
+    ]
+  };
+}
+function uid(){return Math.random().toString(36).slice(2,9)}
+
+// Weekly service: same rotation, each voyage one week later. Later voyages are still filling up.
+const VOYAGES = [
+  {id:'0412', vessel:'KOTA CONTOH', wk:0},
+  {id:'0413', vessel:'KOTA SAMPEL', wk:1},
+  {id:'0414', vessel:'KOTA RINTIS', wk:2},
+  {id:'0415', vessel:'KOTA PERCUBAAN', wk:3},
+  {id:'0416', vessel:'KOTA UJIAN', wk:4}
+];
+// Sample rollover: ports on upcoming vessels that already filled their allocation and hold cargo beyond it.
+// [next-voyage index, bound, POL, POD, final dest, excess TEU, excess MT]
+const OVER = [
+  [0,'WB','CNNGB','INNSA','INNSA',18,200],[0,'WB','IDJKT','INNSA','INNSA',12,190],[0,'EB','INMUN','CNSHA','CNSHA',20,520],[0,'EB','SGSIN','CNSHA','CNSHA',10,150],
+  [1,'WB','CNSHA','INNSA','INNSA',24,270],[1,'EB','INNSA','SGSIN','IDJKT',15,300],
+  [2,'WB','SGSIN','INNSA','INNSA',8,95]
+];
+function seedAll(){
+  const first=seed(), log=first.log; delete first.log;
+  const voyages={[VOYAGES[0].id]:first};
+  [.62,.4,.22,.1].forEach((f,vi)=>{
+    const id=VOYAGES[vi+1].id, s=seed(); delete s.log;
+    s.released={}; s.closed={}; s.claims=[]; s.rfAlloc={...s.rfAlloc,'WB|CNSHA':20};
+    // Onward intra-Asia cargo books early, so it is scaled down less on later voyages.
+    s.bookings=s.bookings.map((x,i)=>{ const k=x.fpd!==x.pod&&x.b==='EB' ? Math.max(0.85,f) : f*(0.7+((i*7+vi*3)%7)/10); const rf=Math.round((x.rf||0)*k);
+      return {...x, id:uid(), ref:x.ref+'-'+id.slice(2), teu:Math.round((x.teu-(x.lost||0))*k), mt:Math.round(x.mt*k), rf, rfTeu:Math.max(rf,Math.round((x.rfTeu||0)*k)),
+        e20:undefined, e40:undefined, ehc:undefined, dg:x.dg&&k>0.3?Math.max(1,Math.round(x.dg*k)):0, oog:0, lost:0}; }).filter(x=>x.teu>0);
+    OVER.filter(o=>o[0]===vi).forEach(([,b,port,pod,fpd,xt,xm])=>{
+      const t=(arr,f)=>arr.reduce((a,x)=>a+x[f],0);
+      const al=s.alloc.filter(a=>a.b===b&&a.port===port&&a.pod===pod), bk=s.bookings.filter(x=>x.b===b&&x.port===port&&x.pod===pod);
+      // fill the port up to its allocation, then the excess waits as an additional loading request
+      const at=t(al,'teu'), am=t(al,'mt'), ft=at-t(bk,'teu'), fm=am-t(bk,'mt');
+      if(ft>0) s.bookings.push({id:uid(),b,ref:port.slice(2)+(b==='WB'?'W':'E')+'F'+String(ft)+'-'+id.slice(2),port,pod,fpd:pod,teu:ft,mt:Math.max(0,fm),rf:0,rfTeu:0});
+      s.requests.push({id:uid(),b,ref:port.slice(2)+(b==='WB'?'W':'E')+'X'+String(xt)+'-'+id.slice(2),port,pod,fpd,teu:xt,mt:xm,rf:0,rfTeu:0,status:'pending',at:'27 Oct 10:15'});
+      s.forecast[`${b}|${port}|${pod}`]={teu:at+xt+5, mt:am+xm+60};
+    });
+    voyages[id]=s;
+  });
+  // Sample forecasts: agents have forecast most ports on the near voyages, fewer further out.
+  Object.values(voyages).forEach((s,vi)=>s.alloc.forEach((a,i)=>{
+    const key=`${a.b}|${a.port}|${a.pod}`; if(s.forecast[key] || (vi>=3 && i%2)) return;
+    const k=0.75+((i*5+vi*3)%9)/16;
+    s.forecast[key]={teu:Math.round(a.teu*k), mt:Math.round(a.mt*k)};
+  }));
+  first.requests=[
+    {id:uid(),b:'WB',port:'CNZJG',pod:'INNSA',fpd:'INNSA',ref:'ZJGW4290',teu:10,mt:110,rf:0,rfTeu:0,status:'pending',at:'27 Oct 15:20'},
+    {id:uid(),b:'EB',port:'INMUN',pod:'CNSHA',fpd:'CNSHA',ref:'MUNE5012',teu:8,mt:210,rf:0,rfTeu:0,status:'pending',at:'28 Oct 08:45'}
+  ];
+  // Shanghai and its Yangtze ports sailed today: their load list is in, a few percent short of booked.
+  first.loaded={};
+  ['CNSHA','CNZJG','CNNKG'].forEach((p,i)=>BOUNDS.WB.pods.forEach((d,j)=>{
+    const bk=first.bookings.filter(x=>x.b==='WB'&&x.port===p&&x.pod===d); if(!bk.length) return;
+    const t=bk.reduce((s,x)=>s+x.teu,0), m=bk.reduce((s,x)=>s+x.mt,0), f=0.88+((i*3+j)%5)*0.025;
+    first.loaded[`WB|${p}|${d}`]={teu:Math.round(t*f), mt:Math.round(m*f)};
+  }));
+  // Sample contract reserves (key accounts) on every voyage; some existing bookings belong to them.
+  Object.values(voyages).forEach(s=>{
+    s.contracts=[['WB','CNSHA','KA-01 Electronics',40,440],['WB','CNNGB','KA-02 Auto parts',30,330],['EB','INNSA','KA-03 Textiles',50,1000],['EB','INMUN','KA-04 Ceramics',40,1000]]
+      .map(([b,port,customer,teu,mt])=>({id:uid(),b,port,customer,teu,mt}));
+    s.contracts.forEach(c=>{ let got=0; s.bookings.filter(x=>x.b===c.b&&x.port===c.port).forEach(x=>{ if(got<c.teu*0.7 && x.teu<=c.teu-got){ x.customer=c.customer; got+=x.teu; } }); });
+  });
+  // 0413 eastbound runs 6 days late from Karachi onward, so its Singapore cargo lands on the same JKS sailing as 0414.
+  voyages['0413'].sched.delay={7:6};
+  return {voyages, log, ob:{on:true, cap:0.1}, rules:{on:true, stages:[{days:3,under:0.7,pct:0.5},{days:0,under:1,pct:1}]}};
+}
+
+let ALL, S, V, role, B='WB', armed=null;
+const dismissed=new Set();
+try{ ALL=JSON.parse(localStorage.getItem('sad11-all')||'null'); role=localStorage.getItem('sad4-role'); B=localStorage.getItem('sad4-bound')||'WB'; V=localStorage.getItem('sad4-voy'); }catch(e){}
+if(!ALL||!ALL.voyages) ALL=seedAll();
+if(!V||!ALL.voyages[V]) V=VOYAGES[0].id;
+Object.values(ALL.voyages).forEach(s=>{ s.forecast=s.forecast||{}; s.requests=s.requests||[]; s.notices=s.notices||[]; s.extra=s.extra||[]; s.loaded=s.loaded||{};
+  s.contracts=s.contracts||[]; s.ruleRuns=s.ruleRuns||{}; s.sched=s.sched||{omit:{},delay:{},moved:{},blank:false}; s.onCap=s.onCap||{}; s.svcCap=s.svcCap||{}; });
+ALL.ob=ALL.ob||{on:true, cap:0.1};
+ALL.rules=ALL.rules||{on:true, stages:[{days:3,under:0.7,pct:0.5},{days:0,under:1,pct:1}]};
+S=ALL.voyages[V];
+const TODAY='2026-10-28';                                        // sample "today" so cut-offs and forecast locks show realistically
+let askDraft=null, editCell=null;
+const expanded=new Set();                                         // load calls whose "loading via" ports are unfolded
+if(!role) role='HQ';
+if(!BOUNDS[B]) B='WB';
+function save(){ try{localStorage.setItem('sad11-all',JSON.stringify(ALL));localStorage.setItem('sad4-role',role);localStorage.setItem('sad4-bound',B);localStorage.setItem('sad4-voy',V)}catch(e){} }
+const curVoy = () => VOYAGES.find(x=>x.id===V);
+const voyIdx = () => VOYAGES.findIndex(x=>x.id===V);
+const nextVoys = (n=3) => VOYAGES.slice(voyIdx()+1, voyIdx()+1+n);
+const vtag = () => V+(B==='WB'?'W':'E');
+function withVoy(id,fn){ const keep=S; S=ALL.voyages[id]; try{ return fn(); } finally{ S=keep; } }
+function addDays(s,n){ const d=new Date(s+'T00:00:00'); d.setDate(d.getDate()+n); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
+const E = i => addDays(ROT[i].eta, curVoy().wk*7 + (S&&S.sched?delayTo(i):0));   // ETA of call i on the selected voyage, after any delay
+
+/* ================= Vector helpers ================= */
+const Z = () => Object.fromEntries(DIMS.map(d=>[d.k,0]));
+const vadd = (a,b) => Object.fromEntries(DIMS.map(d=>[d.k,(a[d.k]||0)+(b[d.k]||0)]));
+const vsub = (a,b) => Object.fromEntries(DIMS.map(d=>[d.k,(a[d.k]||0)-(b[d.k]||0)]));
+const vsum = arr => arr.reduce(vadd,Z());
+const vpos = a => Object.fromEntries(DIMS.map(d=>[d.k,Math.max(0,a[d.k])]));
+const vany = a => DIMS.some(d=>a[d.k]>0);
+const n0 = x => Math.round(x).toLocaleString('en-US');
+const sumf = (arr,f) => arr.reduce((s,x)=>s+(f(x)||0),0);
+
+/* ================= Model ================= */
+const nm = p => PORTS[p]||p;
+const sn = p => nm(p).replace(' (Westport)','');
+const BD = b => BOUNDS[b];
+const ci = (b,port) => BD(b).calls.find(i=>ROT[i].port===port);           // call index of a port within a bound
+function feedInfo(b,p){ for(const [h,arr] of Object.entries(BD(b).feeders)){ const f=arr.find(x=>x.port===p); if(f) return {...f,hub:h}; } return null; }
+const loadCall = (b,p) => feedInfo(b,p)?.hub || p;
+const lci = (b,p) => BD(b).pols.includes(loadCall(b,p)) ? ci(b,loadCall(b,p)) : undefined;
+const loadsIn = (b,p) => lci(b,p)!==undefined;
+const isPod = (b,p) => BD(b).pods.includes(p);
+const podOK = (b,p,d) => ci(b,d) > lci(b,p);                                // POD must be later in the rotation
+const podsFor = (b,p) => BD(b).pods.filter(d=>podOK(b,p,d));
+const lastPod = b => Math.max(...BD(b).pods.map(d=>ci(b,d)));
+const feedersOf = (b,h) => (BD(b).feeders[h]||[]).map(f=>f.port);
+const K = (...a) => a.join('|');
+const pick = o => Object.fromEntries(DIMS.map(d=>[d.k,o[d.k]||0]));
+
+const base = (b,p,d) => vsum(S.alloc.filter(a=>a.b===b&&a.port===p&&a.pod===d).map(pick));
+const rel = (b,p,d) => pick(S.released[K(b,p,d)]||{});
+const claimedIn = (b,p,d) => vsum(S.claims.filter(c=>c.b===b&&c.port===p&&c.pod===d).map(pick));
+// Original allocation = base (set by HQ). Revised = original − released + taken from pool + approved additional loading.
+const extraIn = (b,p,d) => vsum((S.extra||[]).filter(x=>x.b===b&&x.port===p&&x.pod===d).map(pick));
+const eff = (b,p,d) => vadd(vadd(vsub(base(b,p,d),rel(b,p,d)),claimedIn(b,p,d)),extraIn(b,p,d));
+const baseP = (b,p) => vsum(BD(b).pods.map(d=>base(b,p,d)));
+const bksOf = (b,p,d) => S.bookings.filter(x=>x.b===b&&x.port===p&&(!d||x.pod===d));
+const used = (b,p,d) => vsum(bksOf(b,p,d).map(pick));
+const effP = (b,p) => vsum(BD(b).pods.map(d=>eff(b,p,d)));
+const usedP = (b,p) => vsum(BD(b).pods.map(d=>used(b,p,d)));
+const relP = (b,p) => vsum(BD(b).pods.map(d=>rel(b,p,d)));
+const poolFrom = (b,u) => vsub(relP(b,u), vsum(S.claims.filter(c=>c.b===b&&c.from===u).map(pick)));
+const origins = b => [...new Set([...S.alloc.filter(a=>a.b===b).map(a=>a.port),...S.claims.filter(c=>c.b===b).map(c=>c.port)])];
+const groupPorts = (b,h) => [h,...feedersOf(b,h)].filter(p=>origins(b).includes(p));
+const closedP = (b,p) => !!S.closed[K(b,p)];
+// Rollover: cargo booked beyond the port's allocation, per POD, so one POD's balance never hides another's excess.
+const excessOf = (b,p) => vsum(BD(b).pods.map(d=>vpos(vsub(used(b,p,d),capOf(b,p,d)))));
+
+/* ---- #1 Booked vs loaded. Agents may overbook by the port's recent no-show rate, up to HQ's cap. ---- */
+const nsRate = (b,p) => { const rows=(history()[b+'|'+p]||[]).slice(-13), bk=rows.reduce((s,x)=>s+x.bt,0), ld=rows.reduce((s,x)=>s+x.lt,0); return bk?Math.max(0,1-ld/bk):0; };
+const allowance = (b,p) => ALL.ob&&ALL.ob.on ? Math.min(ALL.ob.cap, nsRate(b,p)) : 0;
+const capOf = (b,p,d) => { const e=eff(b,p,d), a=allowance(b,p); return Object.fromEntries(DIMS.map(x=>[x.k,Math.floor(e[x.k]*(1+a))])); };
+const bookLeft = (b,p,d) => vsub(capOf(b,p,d),used(b,p,d));
+const loadedOf = (b,p,d) => S.loaded&&S.loaded[K(b,p,d)] ? pick(S.loaded[K(b,p,d)]) : null;
+const loadedP = (b,p) => { const l=BD(b).pods.map(d=>loadedOf(b,p,d)).filter(Boolean); return l.length?vsum(l):null; };
+const sailed = (b,p) => lci(b,p)!==undefined && TODAY >= E(lci(b,p));
+
+/* ---- #2 Yield. Sample contribution per TEU in USD, by load call and POD. ---- */
+const CM = {
+  WB:{ CNSHA:{SGSIN:180,MYWSP:170,INNSA:450,INMUN:420,PKKHI:520}, CNNGB:{SGSIN:170,MYWSP:160,INNSA:440,INMUN:410,PKKHI:510},
+       CNSHK:{SGSIN:200,MYWSP:190,INNSA:475,INMUN:445,PKKHI:545}, SGSIN:{MYWSP:90,INNSA:330,INMUN:310,PKKHI:380}, MYWSP:{INNSA:300,INMUN:290,PKKHI:360} },
+  EB:{ INNSA:{MYWSP:260,SGSIN:310,CNSHA:380}, INMUN:{MYWSP:240,SGSIN:290,CNSHA:360}, PKKHI:{MYWSP:300,SGSIN:340,CNSHA:420}, MYWSP:{SGSIN:80,CNSHA:200}, SGSIN:{CNSHA:190} }
+};
+const FEED_COST = f => f ? (f.svc?120:90) : 0;   // via another service (T/S handling) or barge / rail / feeder
+const TS_COST = 80;                               // onward transhipment after discharge
+const cmRate = (b,p,d) => ((CM[b][loadCall(b,p)]||{})[d]||0) - FEED_COST(feedInfo(b,p));
+const cmBk = x => (cmRate(x.b,x.port,x.pod) - (x.fpd!==x.pod?TS_COST:0)) * x.teu;
+const cmP = (b,p) => sumf(bksOf(b,p),cmBk);
+const usd = v => 'USD '+(Math.abs(v)>=1e6?(v/1e6).toFixed(2)+'M':Math.abs(v)>=1e3?(v/1e3).toFixed(1)+'k':Math.round(v));
+// Best other use of the same legs: a POL→POD on this bound with demand beyond allocation (waiting requests or forecast over).
+function bestAlt(b,p,d,downstreamOnly){
+  const a0=lci(b,p), a1=ci(b,d); let best=null;
+  origins(b).forEach(q=>podsFor(b,q).forEach(e=>{
+    if(q===p&&e===d) return;
+    const q0=lci(b,q), q1=ci(b,e); if(q1<=a0||q0>=a1) return;
+    if(downstreamOnly && q0<a0) return;
+    const want=vadd(vsum(reqs(b,q,'pending').filter(r=>r.pod===e).map(pick)), hasFc(b,q,e)?vpos(vsub(fc(b,q,e),eff(b,q,e))):Z());
+    if(!want.teu) return;
+    const r=cmRate(b,q,e); if(!best||r>best.rate) best={q,e,rate:r,want};
+  }));
+  return best;
+}
+function yieldNote(b,p,d,teu){
+  const r=cmRate(b,p,d), alt=bestAlt(b,p,d,false);
+  const head=`Contribution here <b>USD ${n0(r)}/TEU</b>${teu?`, about <b>${usd(r*teu)}</b> for ${n0(teu)} TEU`:''}.`;
+  if(!alt) return `<span class="yn ok">${head} No other port with waiting demand shares these legs.</span>`;
+  return alt.rate>r+20
+    ? `<span class="yn warn">${head} Better use of these legs: ${nm(alt.q)} → ${sn(alt.e)} pays USD ${n0(alt.rate)}/TEU and has ${n0(alt.want.teu)} TEU waiting.</span>`
+    : `<span class="yn ok">${head} Best use of these legs. Next best: ${nm(alt.q)} → ${sn(alt.e)} at USD ${n0(alt.rate)}/TEU.</span>`;
+}
+function relNote(b,p,d){
+  const r=cmRate(b,p,d), alt=bestAlt(b,p,d,true);
+  if(!alt) return `<span class="yn">These slots earn USD ${n0(r)}/TEU here. No port at this call or later has waiting demand on these legs yet.</span>`;
+  return alt.rate>=r
+    ? `<span class="yn ok">Good release: ${nm(alt.q)} → ${sn(alt.e)} pays USD ${n0(alt.rate)}/TEU (vs ${n0(r)} here) and has ${n0(alt.want.teu)} TEU waiting.</span>`
+    : `<span class="yn warn">These slots earn USD ${n0(r)}/TEU here. The best taker, ${nm(alt.q)} → ${sn(alt.e)}, pays only USD ${n0(alt.rate)}/TEU.</span>`;
+}
+/* ---- Forecast (port agent) and additional loading requests (HQ approves) ---- */
+const fc = (b,p,d) => pick(S.forecast[K(b,p,d)]||{});
+const hasFc = (b,p,d) => !!S.forecast[K(b,p,d)];
+const fcP = (b,p) => vsum(BD(b).pods.map(d=>fc(b,p,d)));
+const fcOver = (b,p) => vsum(BD(b).pods.map(d=>hasFc(b,p,d)?vpos(vsub(fc(b,p,d),eff(b,p,d))):Z()));
+const fcLockDate = (b,p) => addDays(E(lci(b,p)),-7);
+const fcLocked = (b,p) => TODAY >= fcLockDate(b,p);
+const reqs = (b,p,st) => S.requests.filter(r=>r.b===b&&(!p||r.port===p)&&(!st||r.status===st));
+const pendP = (b,p) => vsum(reqs(b,p,'pending').map(pick));
+
+/* ---- Reefer ---- */
+const rfA = (b,p) => S.rfAlloc[K(b,p)];                       // undefined = no port RF BSA, shares vessel plugs
+const rfUsed = (b,p) => sumf(bksOf(b,p),x=>x.rf);
+const rfTeuUsed = (b,p) => sumf(bksOf(b,p),x=>x.rfTeu);
+// Plugs on the leg sailing out of global call i: booked reefers on board + unused port RF BSA (held until the bound's last POD).
+function rfLeg(i){
+  let booked=0, rteu=0, held=0;
+  Object.keys(BOUNDS).forEach(b=>{
+    S.bookings.filter(x=>x.b===b).forEach(x=>{ if(lci(b,x.port)<=i && ci(b,x.pod)>i){ booked+=x.rf||0; rteu+=x.rfTeu||0; } });
+    Object.keys(S.rfAlloc).filter(k=>k.startsWith(b+'|')).forEach(k=>{ const p=k.split('|')[1];
+      if(lci(b,p)<=i && lastPod(b)>i) held+=Math.max(0,S.rfAlloc[k]-rfUsed(b,p)); });
+  });
+  return {booked,held,rteu};
+}
+function rfRoom(b,p,d){ let m=Infinity; for(let i=lci(b,p);i<ci(b,d);i++){ const l=rfLeg(i); m=Math.min(m,VESSEL.plugs-l.booked-l.held); } return m; }
+
+/* ---- #3 Equipment mix and special cargo ---- */
+// IMO classes a port will not accept for load or discharge. Sample rules: confirm with each port's DG desk.
+const DG_RULES = {
+  CNSHA:{ban:[],note:'All classes, with prior DG approval'}, CNNGB:{ban:[],note:'All classes, with prior DG approval'},
+  CNSHK:{ban:[1],note:'Class 1 not accepted'}, SGSIN:{ban:[1],note:'Class 1 by direct delivery only, not through this desk'},
+  MYWSP:{ban:[1,7],note:'Class 1 and 7 not accepted'}, INNSA:{ban:[1,7],note:'Class 1 and 7 not accepted'},
+  INMUN:{ban:[1],note:'Class 1 not accepted'}, PKKHI:{ban:[1,7],note:'Class 1 and 7 not accepted'}
+};
+const DG_CLASSES=[1,2,3,4,5,6,7,8,9];
+// Box counts. A booking's TEU includes slots lost around out-of-gauge units; bookings without a split use the bound's usual 40' share.
+function eqOf(x){
+  if(x.e20!==undefined) return {e20:x.e20,e40:x.e40,ehc:x.ehc};
+  const box=Math.max(0,x.teu-(x.lost||0)), u40=Math.floor(box*(x.b==='WB'?0.62:0.42)/2), ehc=Math.round(u40*0.5);
+  return {e20:box-2*u40, e40:u40-ehc, ehc};
+}
+const eqSum = list => list.reduce((s,x)=>{ const q=eqOf(x); s.e20+=q.e20; s.e40+=q.e40; s.ehc+=q.ehc; s.dg+=x.dg||0; s.oog+=x.oog||0; s.lost+=x.lost||0;
+  if(x.dg) s.cls[x.dgc]=(s.cls[x.dgc]||0)+x.dg; return s; }, {e20:0,e40:0,ehc:0,dg:0,oog:0,lost:0,cls:{}});
+const eqLabel = x => { const q=eqOf(x); return [q.e20?`${q.e20}×20'`:'',q.e40?`${q.e40}×40'`:'',q.ehc?`${q.ehc}×40'HC`:''].filter(Boolean).join(' · '); };
+// DG and OOG units on board the leg sailing out of global call i, both bounds counted.
+function spLeg(i){ let dg=0,oog=0; Object.keys(BOUNDS).forEach(b=>S.bookings.filter(x=>x.b===b).forEach(x=>{ if(lci(b,x.port)<=i && ci(b,x.pod)>i){ dg+=x.dg||0; oog+=x.oog||0; } })); return {dg,oog}; }
+function spRoom(b,p,d){ const r={dg:Infinity,oog:Infinity}; for(let i=lci(b,p);i<ci(b,d);i++){ const l=spLeg(i); r.dg=Math.min(r.dg,VESSEL.dgCap-l.dg); r.oog=Math.min(r.oog,VESSEL.oogCap-l.oog); } return r; }
+const dgBanned = (b,p,d,c) => [loadCall(b,p),d].filter(port=>((DG_RULES[port]||{}).ban||[]).includes(c));
+const spChips = x => [x.dg?`<span class="chip dgc">DG Cl.${x.dgc} × ${x.dg}</span>`:'', x.oog?`<span class="chip oogc">OOG × ${x.oog} · ${x.lost} TEU lost</span>`:''].filter(Boolean).join(' ');
+const rfPeak = () => Math.max(...ROT.slice(0,-1).map((_,i)=>{const l=rfLeg(i); return l.booked+l.held;}));
+
+// What is on board on the leg sailing out of global call i — both bounds counted.
+function legs(){
+  const out=[];
+  for(let i=0;i<ROT.length-1;i++){
+    let a=Z(), u=Z(), parts={};
+    Object.keys(BOUNDS).forEach(b=>origins(b).forEach(p=>BD(b).pods.forEach(d=>{
+      if(lci(b,p)<=i && ci(b,d)>i){ a=vadd(a,eff(b,p,d)); u=vadd(u,used(b,p,d)); parts[b]=true; }
+    })));
+    out.push({alloc:a,booked:u,bounds:Object.keys(parts),rf:rfLeg(i)});
+  }
+  return out;
+}
+function legRoom(b,p,d){
+  const L=legs(); const room=Object.fromEntries(DIMS.map(x=>[x.k,Infinity]));
+  for(let i=lci(b,p);i<ci(b,d);i++) DIMS.forEach(x=>room[x.k]=Math.min(room[x.k],VESSEL.cap[x.k]-L[i].alloc[x.k]));
+  return room;
+}
+function status(b,p){
+  const e=effP(b,p), u=usedP(b,p);
+  if(closedP(b,p)) return {cls:'closed',txt:'Released'};
+  const xs=excessOf(b,p);
+  if(vany(xs)) return {cls:'over',txt:`Rollover ${n0(xs.teu)} TEU / ${n0(xs.mt)} MT`};
+  const pq=pendP(b,p);
+  if(vany(pq)) return {cls:'warnc',txt:`+${n0(pq.teu)} TEU / ${n0(pq.mt)} MT awaiting HQ`};
+  const obk=vsum(BD(b).pods.map(d=>vpos(vsub(used(b,p,d),eff(b,p,d)))));
+  if(vany(obk)) return {cls:'full',txt:`Overbooked +${n0(obk.teu)} TEU (no-show allowance)`};
+  if(e.teu>0 && u.teu>=e.teu) return {cls:'full',txt:'Full'};
+  if(e.mt>0 && u.mt>=e.mt) return {cls:'wfull',txt:'Full by weight'};
+  const wf = BD(b).pods.filter(d=>{const ee=eff(b,p,d),uu=used(b,p,d); return ee.mt>0 && uu.mt>=ee.mt;});
+  if(wf.length) return {cls:'wfull',txt:'Weight full to '+wf.map(sn).join(', ')};
+  const fo=fcOver(b,p);
+  if(vany(fo)) return {cls:'warnc',txt:`Forecast ${n0(fo.teu)} TEU / ${n0(fo.mt)} MT over`};
+  return {cls:'open',txt:`${n0(e.teu-u.teu)} TEU · ${n0(e.mt-u.mt)} MT left`};
+}
+const fmt = s => new Date(s+'T00:00:00').toLocaleDateString('en-GB',{day:'2-digit',month:'short'});
+const cutoff = s => { const d=new Date(s+'T00:00:00'); d.setDate(d.getDate()-1); return d.toLocaleDateString('en-GB',{day:'2-digit',month:'short'}); };
+const esc = s => String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+function meter(u,t,cls=''){ const p=t?u/t:0; const c=p>1?'over':p>=.999?'full':''; return `<span class="meter ${cls} ${c}"><i style="width:${Math.min(100,p*100).toFixed(1)}%"></i></span>`; }
+function utilBlock(u,e){
+  return DIMS.map(d=>`<span class="u"><span>${d.u}</span>${meter(u[d.k],e[d.k],d.k==='mt'?'mtm':'')}<span class="num">${e[d.k]?Math.round(u[d.k]/e[d.k]*100):0}%</span></span>`).join('');
+}
+const qty = v => `${n0(v.teu)} TEU · <span class="wt">${n0(v.mt)} MT</span>`;
+const linkLabel = f => f.svc ? `<span class="svc">${f.svc}</span>` : `<span class="svc land">${f.land}</span>`;
+function onwardOf(b,d,f){ return (BD(b).onward[d]||[]).find(x=>x.port===f); }
+function handling(b,pod,fpd){
+  if(pod===fpd) return `<span class="chip direct">Direct</span>`;
+  const o=onwardOf(b,pod,fpd);
+  return `<span class="chip ts">T/S at ${sn(pod)} → ${nm(fpd)}${o?.svc?` · ${o.svc}`:o?.land?` · ${o.land}`:''}</span>`;
+}
+function addLog(m){ const d=new Date(); ALL.log.push({t:d.toLocaleDateString('en-GB',{day:'2-digit',month:'short'})+' '+d.toTimeString().slice(0,5),m:`${vtag()} ${BD(B).label}: ${m}`}); }
+
+/* ---- Next vessels: cargo through via ports ---- */
+function hubsOf(b){ const s=new Set(); BD(b).pols.forEach(p=>{ if((BD(b).feeders[p]||[]).length) s.add(p); }); BD(b).pods.forEach(p=>{ if((BD(b).onward[p]||[]).length) s.add(p); }); return [...s]; }
+function flows(b,h){                                            // reads the voyage currently in S
+  const join=S.bookings.filter(x=>x.b===b && feedInfo(b,x.port)?.hub===h);
+  const ts=S.bookings.filter(x=>x.b===b && x.pod===h && x.fpd!==h);
+  const by=(arr,key)=>{ const o={}; arr.forEach(x=>{ const k=key(x); o[k]=vadd(o[k]||Z(),pick(x)); }); return o; };
+  return { join:vsum(join.map(pick)), ts:vsum(ts.map(pick)),
+    joinBy:by(join,x=>{ const f=feedInfo(b,x.port); return f.svc||f.land; }),
+    tsBy:by(ts,x=>{ const o=onwardOf(b,h,x.fpd); return o?.svc||o?.land||'Other'; }) };
+}
+function mergeBy(list){ const o={}; list.forEach(m=>Object.entries(m).forEach(([k,v])=>o[k]=vadd(o[k]||Z(),v))); return o; }
+const tot = v => `${n0(v.teu)} TEU / ${n0(v.mt)} MT`;
+const bySvc = o => Object.entries(o).sort((a,c)=>c[1].teu-a[1].teu).map(([k,v])=>`${k} ${n0(v.teu)}`).join(' · ');
+
+function reminder(){
+  const nv=nextVoys(); if(!nv.length) return '';
+  const key=V+B+role; if(dismissed.has(key)) return '';
+  // HQ sees every port; an agent sees its own port, plus the ports grouped under it when it is a load call.
+  const mine = p => role==='HQ' || p===role || loadCall(B,p)===role;
+  const rows=[]; let allRq=Z(), allFo=Z();
+  nv.forEach(c=>{
+    const items=withVoy(c.id,()=>origins(B).filter(mine).map(p=>({p,rq:pendP(B,p),fo:fcOver(B,p),u:usedP(B,p),a:effP(B,p)})).filter(r=>vany(r.rq)||vany(r.fo)));
+    items.forEach(r=>{ allRq=vadd(allRq,r.rq); allFo=vadd(allFo,r.fo); rows.push({c,...r}); });
+  });
+  if(!rows.length) return '';
+  const vs=new Set(rows.map(r=>r.c.id)).size, ps=new Set(rows.map(r=>r.p)).size, tag=B==='WB'?'W':'E';
+  const cell=v=>vany(v)?`<b>${n0(v.teu)}</b> TEU<br><span class="wt">${n0(v.mt)} MT</span>`:'<span class="muted">—</span>';
+  return `<section class="panel notice" role="status"><div class="ph"><div><div class="eyebrow">Rollover alert · next ${nv.length} vessels ${BD(B).label.toLowerCase()}</div>
+      <div class="alert-sum">
+        ${vany(allRq)?`<span class="stat"><span>Waiting HQ approval</span><b>${tot(allRq)}</b></span>`:''}
+        ${vany(allFo)?`<span class="stat"><span>Forecast above allocation</span><b>${tot(allFo)}</b></span>`:''}
+        <span class="stat"><span>Affected</span><b>${ps} port${ps===1?'':'s'} · ${vs} vessel${vs===1?'':'s'}</b></span>
+      </div></div>
+      <div class="acts"><a href="#pipeline" class="lnk">See by vessel</a><button type="button" class="ghost" data-dismiss>Dismiss</button></div></div>
+    <details class="fold"><summary>Show ports</summary>
+      <div class="tbl-wrap"><table><thead><tr><th>Port of load</th><th>Vessel</th><th class="num">Waiting HQ</th><th class="num">Forecast over</th><th class="num">Booked / allocation</th></tr></thead><tbody>${
+        rows.map(r=>{ const fi=feedInfo(B,r.p); return `<tr><td><span class="pname">${nm(r.p)}<small>${fi?`Loading via ${sn(fi.hub)}`:'Vessel call'}</small></span></td>
+          <td><span class="pname">${r.c.vessel}<small>${r.c.id}${tag} · ETA ${fmt(addDays(ROT[BD(B).calls[0]].eta,r.c.wk*7))}</small></span></td>
+          <td class="num">${cell(r.rq)}</td><td class="num">${cell(r.fo)}</td><td class="num">${n0(r.u.teu)} / ${n0(r.a.teu)} TEU</td></tr>`; }).join('')
+      }</tbody></table></div></details></section>`;
+}
+
+function pipelinePanel(){
+  const b=B, nv=nextVoys(), cols=[curVoy(),...nv], tag=b==='WB'?'W':'E', span=cols.length+1+(nv.length?1:0);
+  const cell=v=>`<td class="num">${vany(v)?`<b>${n0(v.teu)}</b> TEU<br><span class="wt">${n0(v.mt)} MT</span>`:'<span class="muted">—</span>'}</td>`;
+  const row=(label,sub,fn)=>{ const vals=cols.map(c=>withVoy(c.id,fn)); return `<tr><td><span class="pname">${label}${sub?`<small>${sub}</small>`:''}</span></td>${vals.map(cell).join('')}${nv.length?cell(vsum(vals.slice(1))):''}</tr>`; };
+  let body=`<tr class="sec"><td colspan="${span}">${BD(b).label} totals</td></tr>`;
+  body+=row('Allocated','',()=>vsum(origins(b).map(p=>effP(b,p))));
+  body+=row('Forecast','Entered by port agents',()=>vsum(origins(b).map(p=>fcP(b,p))));
+  body+=row('Booked','',()=>vsum(origins(b).map(p=>usedP(b,p))));
+  if(role==='HQ'){ const cv=cols.map(c=>withVoy(c.id,()=>sumf(origins(b),p=>cmP(b,p))));
+    body+=`<tr><td><span class="pname">Contribution booked<small>USD</small></span></td>${cv.map(v=>`<td class="num">${v?usd(v):'<span class="muted">—</span>'}</td>`).join('')}${nv.length?`<td class="num"><b>${usd(cv.slice(1).reduce((a,c)=>a+c,0))}</b></td>`:''}</tr>`; }
+  body+=row('Forecast above allocation','Early rollover warning',()=>vsum(origins(b).map(p=>fcOver(b,p))));
+  body+=row('Waiting HQ approval','Booked beyond allocation',()=>vsum(origins(b).map(p=>pendP(b,p))));
+  if(role!=='HQ' && loadsIn(b,role)){
+    body+=row(`Your forecast · ${sn(role)}`,'',()=>fcP(b,role));
+    body+=row(`Your bookings · ${sn(role)}`,'',()=>usedP(b,role));
+    body+=row(`Your requests waiting · ${sn(role)}`,'',()=>pendP(b,role));
+  }
+  const rfv=cols.map(c=>withVoy(c.id,()=>sumf(origins(b),p=>rfUsed(b,p))));
+  body+=`<tr><td><span class="pname">Reefer plugs booked</span></td>${rfv.map(v=>`<td class="num rft">${v||'<span class="muted">—</span>'}</td>`).join('')}${nv.length?`<td class="num rft">${rfv.slice(1).reduce((a,c)=>a+c,0)}</td>`:''}</tr>`;
+  body+=`<tr class="sec"><td colspan="${span}">Via ports and transhipment</td></tr>`;
+  hubsOf(b).forEach(h=>{
+    if(BD(b).pols.includes(h) && (BD(b).feeders[h]||[]).length) body+=row(`Loading via ${sn(h)}`, BD(b).feeders[h].map(f=>f.port.slice(2)).join(', '), ()=>flows(b,h).join);
+    if(isPod(b,h) && (BD(b).onward[h]||[]).length) body+=row(`T/S at ${sn(h)}`, 'onward to '+BD(b).onward[h].map(f=>f.port.slice(2)).join(', '), ()=>flows(b,h).ts);
+  });
+  return `<section class="panel wide-half" id="pipeline" data-nav="Next vessels"><div class="ph"><div><h2>Next vessels</h2>
+    <p>Booked cargo on this voyage and the next ${nv.length||'none'}. Plan hub handling, connecting services and rollover ahead of time.</p></div></div>
+    <div class="tbl-wrap"><table><thead><tr><th>${BD(b).label}</th>${cols.map((c,i)=>`<th class="num ${i===0?'cur':''}">${c.vessel}<small>${c.id}${tag}${i===0?' · this voyage':` · ETA ${fmt(addDays(ROT[BD(b).calls[0]].eta,c.wk*7))}`}</small></th>`).join('')}${nv.length?`<th class="num">Next ${nv.length} total</th>`:''}</tr></thead><tbody>${body}</tbody></table></div></section>`;
+}
+
+/* ================= Views ================= */
+function roleOptions(){
+  let h=`<option value="HQ">HQ Trade</option>`;
+  const seen=new Set();
+  Object.entries(BOUNDS).forEach(([b,cfg])=>{
+    h+=`<optgroup label="${cfg.label} loading">`;
+    cfg.pols.forEach(pol=>{
+      if(!seen.has(pol)){ seen.add(pol); h+=`<option value="${pol}">Agent · ${sn(pol)}</option>`; }
+      feedersOf(b,pol).filter(p=>origins(b).includes(p)&&!seen.has(p)).forEach(f=>{ seen.add(f); h+=`<option value="${f}">Agent · ${nm(f)} (via ${sn(pol)})</option>`; });
+    });
+    h+='</optgroup>';
+  });
+  return h;
+}
+
+function voyageHead(){
+  const o=origins(B), tot=vsum(o.map(p=>effP(B,p))), bk=vsum(o.map(p=>usedP(B,p))), pool=vsum(o.map(p=>poolFrom(B,p))), fct=vsum(o.map(p=>fcP(B,p)));
+  const rfu=sumf(o,p=>rfUsed(B,p)), rft=sumf(o,p=>rfTeuUsed(B,p)), peak=rfPeak();
+  const k=(lbl,v,col)=>`<div class="kpi"><span>${lbl}</span><b style="color:${col}">${n0(v.teu)} TEU<small style="color:var(--wt)">${n0(v.mt)} MT</small></b></div>`;
+  document.getElementById('kpis').innerHTML =
+    k('Capacity',VESSEL.cap,'var(--ink)') + k('Allocated',tot,'var(--navy)') + k('Forecast',fct,'var(--gold)') + k('Booked',bk,'var(--ok)') +
+    (role==='HQ'?(()=>{ const c=sumf(o,p=>cmP(B,p)); return `<div class="kpi"><span title="Contribution margin booked">CM booked</span><b style="color:var(--ok)">${usd(c)}<small style="color:var(--muted)">${n0(c/Math.max(1,bk.teu))}/TEU</small></b></div>`; })():'') +
+    k('Pool',pool,'var(--accent)') +
+    `<div class="kpi"><span>Reefer plugs</span><b style="color:var(--rf)">${n0(rfu)}<small style="color:var(--muted)">${n0(rft)} RF TEU · peak ${peak}/${VESSEL.plugs}</small></b></div>`;
+  return `<section class="voyage">
+    <div><div class="eyebrow">${VESSEL.service} · ${BD(B).label} ${BD(B).pols.map(p=>p.slice(2)).join('·')} → ${BD(B).pods.map(p=>p.slice(2)).join('·')}</div>
+      <h2>${curVoy().vessel} · ${vtag()}<span class="sample">Sample data · today ${fmt(TODAY)}</span></h2></div>
+    </section>`;
+}
+
+function routeStrip(){
+  const L=legs(); const myIdx = role==='HQ'?-1:(loadsIn(B,role)?lci(B,role):(isPod(B,role)?ci(B,role):-1));
+  const inB=new Set(BD(B).calls);
+  let h=`<div class="route" aria-label="Port rotation" data-nav="Rotation"><div class="route-key"><span><i style="background:var(--navy)"></i>TEU</span><span><i style="background:var(--wt)"></i>Tonnage</span><span><i style="background:var(--rf)"></i>Reefer plugs</span><span>Solid = booked, light = allocated or held. Legs count cargo of both bounds.</span></div><ol class="calls">`;
+  ROT.forEach((c,i)=>{
+    const p=c.port, isL = inB.has(i) && BD(B).pols.includes(p) && ci(B,p)===i, isD = inB.has(i) && BD(B).pods.includes(p) && ci(B,p)===i;
+    const me = i===myIdx ? ' me':'';
+    let disLine='';
+    if(isD){
+      const bs=S.bookings.filter(x=>x.b===B&&x.pod===p), t=vsum(bs.map(pick)), ts=vsum(bs.filter(x=>x.fpd!==p).map(pick));
+      disLine=`<span class="ln ${isL?'dl':''}">Discharge <b>${n0(t.teu)}</b> TEU · <b>${n0(t.mt)}</b> MT</span>
+        <span class="ln">${n0(t.teu-ts.teu)} direct · ${n0(ts.teu)} T/S TEU</span>`;
+    }
+    if(isL){
+      const g=groupPorts(B,p), e=vsum(g.map(x=>effP(B,x))), u=vsum(g.map(x=>usedP(B,x)));
+      const fd=g.filter(x=>x!==p), rfu=sumf(g,x=>rfUsed(B,x)), rft=sumf(g,x=>rfTeuUsed(B,x));
+      h+=`<li class="call load${isD?' dis':''}${me}${omitted(i)?' omit':''}">        <span class="nm">${sn(p)} <code class="muted">${p}</code></span>
+        <span class="ln">ETA ${fmt(E(i))} · cut-off ${cutoff(E(i))}</span>
+        ${meter(u.teu,e.teu)}<span class="ln"><b>${n0(u.teu)}</b> / ${n0(e.teu)} TEU</span>
+        ${meter(u.mt,e.mt,'mtm')}<span class="ln"><b>${n0(u.mt)}</b> / ${n0(e.mt)} MT</span>
+        ${rfu?`<span class="ln rfl">RF ${rfu} plugs · ${rft} TEU</span>`:''}
+        ${fd.length?`<span class="fd">+ ${fd.map(x=>x.slice(2)).join(', ')} via ${p.slice(2)}</span>`:''}
+        ${disLine}</li>`;
+    } else if(isD){
+      h+=`<li class="call dis${me}${omitted(i)?' omit':''}">
+        <span class="nm">${sn(p)} <code class="muted">${p}</code></span>
+        <span class="ln">ETA ${fmt(E(i))}</span>${disLine}</li>`;
+    } else {
+      const other = Object.keys(BOUNDS).find(b=>b!==B);
+      h+=`<li class="call other"><span class="eyebrow">${c.next?'Next voyage':BD(other).label}</span>
+        <span class="nm">${sn(p)} <code class="muted">${p}</code></span>
+        <span class="ln">ETA ${fmt(E(i))}</span></li>`;
+    }
+    if(i<L.length){
+      const l=L[i], bars=DIMS.map(d=>{const over=l.alloc[d.k]>VESSEL.cap[d.k];
+        return `<span class="legbar ${d.k==='mt'?'mtb':''} ${over?'over':''}"><i class="b" style="width:${Math.min(100,l.booked[d.k]/VESSEL.cap[d.k]*100)}%"></i><i class="a" style="width:${Math.max(0,Math.min(100,(l.alloc[d.k]-l.booked[d.k])/VESSEL.cap[d.k]*100))}%"></i></span>`;}).join('');
+      const r=l.rf, rOver=r.booked+r.held>VESSEL.plugs;
+      const rbar=`<span class="legbar rfb ${rOver?'over':''}"><i class="b" style="width:${Math.min(100,r.booked/VESSEL.plugs*100)}%"></i><i class="a" style="width:${Math.max(0,Math.min(100,r.held/VESSEL.plugs*100))}%"></i></span>`;
+      const spare=vsub(VESSEL.cap,l.alloc), over=DIMS.some(d=>spare[d.k]<0);
+      h+=`<li class="leg" aria-label="Leg ${ROT[i].port} to ${ROT[i+1].port}"><span class="arrow">→</span>${bars}${rbar}
+        <span class="lb ${over?'over':''}">${over?'<b>Over</b>':'Spare'}<br><b>${n0(spare.teu)}</b> TEU<br><b>${n0(spare.mt)}</b> MT</span>
+        <span class="lb rfl ${rOver?'over':''}">RF <b>${r.booked+r.held}</b>/${VESSEL.plugs}</span>
+        ${l.bounds.length>1?'<span class="lb">WB + EB</span>':''}</li>`;
+    }
+  });
+  return h+'</ol></div>';
+}
+
+function connections(){
+  const b=B;
+  const joins = BD(b).pols.map(pol=>{
+    const fs=BD(b).feeders[pol]||[];
+    return `<div class="conn-hub"><h3><span>${nm(pol)} <code class="muted">${pol}</code></span><span class="eyebrow">ETA ${fmt(E(ci(b,pol)))}</span></h3>
+      ${fs.length?`<ul>${fs.map(f=>{ const c=connInfo(b,pol,f,'in'), t=origins(b).includes(f.port)?usedP(b,f.port).teu:0;
+        return `<li><span>${nm(f.port)} <code class="muted">${f.port}</code><small class="conn-d">${c.date?`Arrives ${fmt(c.date)}`:''}${t?`${c.date?' · ':''}${n0(t)} TEU booked`:''}</small></span><span class="acts">${linkLabel(f)}<span class="chip ${c.cls}">${c.txt}</span></span></li>`; }).join('')}</ul>`:'<p class="note">Local cargo only.</p>'}</div>`;
+  }).join('');
+  const leaves = BD(b).pods.map(pod=>{
+    const os=BD(b).onward[pod]||[];
+    return `<div class="conn-hub"><h3><span>${nm(pod)} <code class="muted">${pod}</code></span><span class="eyebrow">ETA ${fmt(E(ci(b,pod)))}</span></h3>
+      ${os.length?`<ul>${os.map(f=>{ const c=connInfo(b,pod,f,'out'), t=sumf(S.bookings.filter(x=>x.b===b&&x.pod===pod&&x.fpd===f.port),x=>x.teu);
+        return `<li><span>→ ${nm(f.port)} <code class="muted">${f.port}</code><small class="conn-d">${c.date?`Sails ${fmt(c.date)}`:''}${t?`${c.date?' · ':''}${n0(t)} TEU booked`:''}</small></span><span class="acts">${linkLabel(f)}<span class="chip ${c.cls}">${c.txt}</span></span></li>`; }).join('')}</ul>`:'<p class="note">Direct discharge only.</p>'}</div>`;
+  }).join('');
+  return `<section class="panel" data-nav="Connections"><div class="ph"><div><h2>${BD(b).label} connections</h2>
+    <p>Ports without a call on this bound. Cargo loading via a vessel call is grouped under that call. Service codes show the connecting service; grey tags are barge, rail or feeder. Connection days use the weekly schedule of each connecting service (sample).</p></div>
+    ${(()=>{ const risky=[]; BD(b).pols.forEach(pol=>(BD(b).feeders[pol]||[]).forEach(f=>{ const c=connInfo(b,pol,f,'in'); if(atRisk(c)&&origins(b).includes(f.port)&&usedP(b,f.port).teu) risky.push(f.port); }));
+      BD(b).pods.forEach(pod=>(BD(b).onward[pod]||[]).forEach(f=>{ const c=connInfo(b,pod,f,'out'); if(atRisk(c)&&S.bookings.some(x=>x.b===b&&x.pod===pod&&x.fpd===f.port)) risky.push(f.port); }));
+      return `<span class="chip ${risky.length?'warnc':'okc'}">${risky.length?`${risky.length} connection${risky.length>1?'s':''} with cargo at risk`:'No connection at risk'}</span>`; })()}</div>
+    <div class="conn"><div class="conn-col"><span class="eyebrow">Loading via</span>${joins}</div><div class="conn-col"><span class="eyebrow">Onward from port of discharge</span>${leaves}</div></div></section>`;
+}
+
+function portRow(b,p,opts){
+  const {editable=false, actions=true} = opts||{};
+  const fi=feedInfo(b,p), st=status(b,p);
+  const cells = BD(b).pods.map(d=>{
+    if(!podOK(b,p,d)) return `<td class="na" title="Not after this port in the rotation">·</td>`;
+    const bs=base(b,p,d), e=eff(b,p,d), u=used(b,p,d), r=rel(b,p,d), c=claimedIn(b,p,d);
+    if(!editable && !vany(bs) && !vany(c)) return `<td class="num muted">—</td>`;
+    const top = editable
+      ? `<span class="pair">${DIMS.map(x=>`<input type="number" min="0" step="1" class="${x.k}" id="al-${b}-${p}-${d}-${x.k}" data-alloc="${b}|${p}|${d}|${x.k}" value="${bs[x.k]}" aria-label="${nm(p)} to ${nm(d)} ${x.u}">`).join('')}</span>`
+      : `<span class="val"><b>${n0(e.teu)}</b> TEU · <span class="wt">${n0(e.mt)} MT</span></span>`;
+    const pr=vsum(reqs(b,p,'pending').filter(q=>q.pod===d).map(pick));
+    const tags=[vany(r)?`<span class="tag rel">−${n0(r.teu)}/${n0(r.mt)} released</span>`:'', vany(c)?`<span class="tag pool">+${n0(c.teu)}/${n0(c.mt)} pool</span>`:'', vany(pr)?`<span class="tag req">+${n0(pr.teu)}/${n0(pr.mt)} requested</span>`:'', (()=>{ const xa=extraIn(b,p,d); return vany(xa)?`<span class="tag pool">+${n0(xa.teu)}/${n0(xa.mt)} approved</span>`:''; })()].filter(Boolean).join(' ');
+    const f=fc(b,p,d), hf=hasFc(b,p,d), fo=hf&&(f.teu>e.teu||f.mt>e.mt);
+    return `<td class="pod-cell num">${top}<span class="sub">${hf?`<span class="${fo?'fo':''}" title="Forecast">F ${n0(f.teu)} / ${n0(f.mt)}</span>`:'<span title="No forecast yet">F —</span>'} · <span title="Booked">B ${n0(u.teu)} / ${n0(u.mt)}</span>${(()=>{ const l=loadedOf(b,p,d); return l?` · <span class="ldd" title="Loaded">L ${n0(l.teu)} / ${n0(l.mt)}</span>`:''; })()}</span>${tags?`<span class="sub">${tags}</span>`:''}${editable&&role==='HQ'?podActions(b,p,d):''}</td>`;
+  }).join('');
+  const e=effP(b,p), u=usedP(b,p), ra=rfA(b,p), ru=rfUsed(b,p), rt=rfTeuUsed(b,p);
+  let act='';
+  if(actions){
+    if(closedP(b,p)) act = role==='HQ' ? `<button type="button" data-reopen="${p}">Reopen</button>` : '';
+    else { const un=vpos(vsub(e,u)); act = armed===p
+      ? `<div class="acts">${reasonSel('rs-port-'+p,'release')}<button type="button" class="danger armed" data-release="${p}">Release ${n0(un.teu)} TEU / ${n0(un.mt)} MT</button><button type="button" class="ghost" data-disarm>Cancel</button></div>`
+      : `<button type="button" class="danger" data-arm="${p}" ${vany(un)||(ra>ru)?'':'disabled'}>Release unused</button>`; }
+  }
+  return `<tr class="${fi?'feeder':''} ${p===role?'self':''}">
+    <td><span class="pname">${fi?'↳ ':''}${nm(p)} <code class="muted">${p}</code><small>${fi?`Loading via ${sn(fi.hub)} · ${fi.svc?fi.svc+' service':fi.land}`:'Vessel call · local cargo'}</small></span></td>
+    ${cells}
+    ${(()=>{ const o=baseP(b,p), same=DIMS.every(x=>o[x.k]===e[x.k]);
+      return `<td class="num"><b>${n0(e.teu)}</b><br><span class="wt">${n0(e.mt)} MT</span>${same?'':`<br><small class="muted" title="Original allocation">orig ${n0(o.teu)} / ${n0(o.mt)}</small>`}</td>`; })()}
+    ${(()=>{ const F=fcP(b,p), fov=fcOver(b,p); return `<td class="num ${vany(fov)?'fo':''}">${vany(F)?`${n0(F.teu)}<br><span class="wt">${n0(F.mt)} MT</span>`:'<span class="muted">—</span>'}${fcLocked(b,p)?'<br><small class="muted">locked</small>':''}</td>`; })()}
+    <td class="num">${n0(u.teu)}<br><span class="wt">${n0(u.mt)} MT</span>${(()=>{ const L=loadedP(b,p); return L?`<br><small class="ldd">loaded ${n0(L.teu)}</small>`:''; })()}</td>
+    ${role==='HQ'?(()=>{ const c=cmP(b,p); return `<td class="num">${c?`<b>${usd(c)}</b><br><small class="muted">${n0(c/Math.max(1,u.teu))}/TEU</small>`:'<span class="muted">—</span>'}</td>`; })():''}
+    <td class="num rft">${ru||ra!==undefined?`${ru}${ra!==undefined?` / ${ra}`:''}<br><small>${rt} RF TEU</small>`:'<span class="muted">—</span>'}</td>
+    <td class="util">${utilBlock(u,e)}</td>
+    <td><span class="chip ${st.cls}">${st.txt}</span></td>
+    ${actions?`<td>${act}</td>`:''}</tr>`;
+}
+
+function board(b, filter, opts){
+  const actions = opts.actions!==false;
+  const cols = BD(b).pods.length+7+(actions?1:0)+(role==='HQ'?1:0);
+  let h=`<div class="tbl-wrap scrolly"><table><thead><tr><th>Port of load</th>${BD(b).pods.map(d=>`<th class="num">→ ${sn(d)}<small>${opts.editable?'TEU · MT':''}</small></th>`).join('')}<th class="num">Allocation<small>revised · orig</small></th><th class="num">Forecast</th><th class="num">Booked</th>${role==='HQ'?'<th class="num">Contribution<small>booked</small></th>':''}<th class="num">Reefer<small>plugs used / BSA</small></th><th>Utilisation</th><th>Status</th>${actions?'<th></th>':''}</tr></thead><tbody>`;
+  BD(b).pols.forEach(pol=>{
+    const g=groupPorts(b,pol).filter(filter); if(!g.length) return;
+    const all=groupPorts(b,pol), e=vsum(all.map(x=>effP(b,x))), u=vsum(all.map(x=>usedP(b,x)));
+    // Ports loading via this call fold under it; open on request, or when the viewer / an open review box is inside.
+    const via=all.filter(x=>x!==pol), key=b+'|'+pol;
+    const open = expanded.has(key) || (role!=='HQ' && via.includes(role)) || via.some(x=>editCell&&editCell.startsWith(b+'|'+x+'|'));
+    const pq=vsum(via.flatMap(x=>reqs(b,x,'pending')).map(pick)), fo=via.filter(x=>vany(fcOver(b,x))).length;
+    const badges=open?'':[vany(pq)?`<span class="chip warnc">${n0(pq.teu)} TEU awaiting HQ</span>`:'', fo?`<span class="chip warnc">${fo} forecast over</span>`:''].join(' ');
+    const tog=via.length?`<button type="button" class="tog" data-tog="${key}" aria-expanded="${open}">${open?'▾ Hide':'▸ Show'} ${via.length} port${via.length>1?'s':''} loading via ${sn(pol)}</button>`:'';
+    h+=`<tr class="grp"><td colspan="${cols}"><span class="gl"><b>${nm(pol)}</b>${tog}${badges} <span class="gsum">· cut-off ${cutoff(E(ci(b,pol)))} · loads here ${n0(u.teu)} / ${n0(e.teu)} TEU · ${n0(u.mt)} / ${n0(e.mt)} MT</span></span></td></tr>`;
+    g.filter(p=>p===pol||open).forEach(p=>h+=portRow(b,p,opts));
+  });
+  return h+'</tbody></table></div>';
+}
+
+function dischargePlan(b, bks, title, note, onlyPod){
+  let h=`<section class="panel" data-nav="${title}"><div class="ph"><div><h2>${title}</h2><p>${note}</p></div></div><div class="dis-grid">`;
+  BD(b).pods.filter(d=>!onlyPod||d===onlyPod).forEach(d=>{
+    const bs=bks.filter(x=>x.pod===d), t=vsum(bs.map(pick)), trf=sumf(bs,x=>x.rf);
+    const groups={}; bs.forEach(x=>{ const g=(groups[x.fpd]=groups[x.fpd]||{v:Z(),rf:0,pols:new Set()}); g.v=vadd(g.v,pick(x)); g.rf+=x.rf||0; g.pols.add(x.port); });
+    const dir=groups[d]?.v||Z(), ts=vsub(t,dir);
+    const rows=Object.entries(groups).sort((a,c)=>(a[0]===d?-1:c[0]===d?1:c[1].v.teu-a[1].v.teu)).map(([f,g])=>{
+      const o=onwardOf(b,d,f);
+      return `<div class="drow">${f===d?'<span class="chip direct">Direct</span>':'<span class="chip ts">T/S</span>'}<span>${f===d?`Discharge at ${sn(d)}`:`On to ${nm(f)} <code class="muted">${f}</code> ${o?linkLabel(o):''}`}</span><span class="q"><b>${n0(g.v.teu)} TEU</b><small>${n0(g.v.mt)} MT</small>${g.rf?`<small class="rft">${g.rf} reefer</small>`:''}</span><span class="from">From ${[...g.pols].map(sn).join(', ')}</span></div>`;
+    }).join('');
+    h+=`<div class="dcard"><div class="ph"><h3>${nm(d)} <code class="muted">${d}</code></h3><span class="muted">ETA ${fmt(E(ci(b,d)))}</span></div>
+      <div class="split" aria-hidden="true"><i class="d" style="width:${t.teu?dir.teu/t.teu*100:0}%"></i><i class="t" style="width:${t.teu?ts.teu/t.teu*100:0}%"></i></div>
+      <span class="muted" style="font-size:.85rem"><b style="color:var(--ink)">${qty(t)}</b> · ${n0(dir.teu)} direct · ${n0(ts.teu)} transhipment TEU${trf?` · <span class="rft">${trf} reefer</span>`:''}</span>
+      ${rows||'<span class="empty">Nothing booked to this port yet.</span>'}</div>`;
+  });
+  return h+'</div></section>';
+}
+
+/* HQ decides additional loading per port of load AND port of discharge, for any amount up to the full need. */
+const statusChip = r => r.status==='pending'?['warnc','Waiting for HQ']:r.status==='approved'?['okc','Approved']:r.status==='partial'?['warnc',`Part · ${n0(r.booked?.teu||0)} of ${n0(r.teu)} TEU`]:['over','Rejected'];
+function decisionEditor(b,p,d,pre,closable){
+  const key=K(b,p,d), pend=reqs(b,p,'pending').filter(r=>r.pod===d), req=vsum(pend.map(pick));
+  const need=vpos(vsub(vadd(used(b,p,d),req),capOf(b,p,d))), room=legRoom(b,p,d);
+  return `<span class="dec">
+    <span class="dec-h">Requested <b>${tot(req)}</b> <span class="muted">${pend.map(r=>esc(r.ref)).join(', ')}</span></span>
+    <span class="dec-r"><label for="${pre}-${b}-${p}-${d}-teu">Raise allocation by</label>${DIMS.map(x=>`<input type="number" min="0" step="1" class="${x.k}" id="${pre}-${b}-${p}-${d}-${x.k}" value="${need[x.k]}" aria-label="Raise ${nm(p)} to ${nm(d)} by ${x.u}">`).join('')}</span>
+    <span class="dec-h muted">Full request needs ${tot(need)} more. Vessel room ${n0(Math.max(0,room.teu))} TEU / ${n0(Math.max(0,room.mt))} MT. Approve less to confirm part of it.</span>
+    ${yieldNote(b,p,d,need.teu)}
+    <span class="acts">${decisionReasons(`rs-${pre}-${key}`)}<button type="button" class="okb" data-apcell="${key}" data-pre="${pre}">Approve</button><button type="button" class="danger" data-rjcell="${key}" data-pre="${pre}">Reject</button>${closable?'<button type="button" class="ghost" data-closecell>Close</button>':''}</span>
+  </span>`;
+}
+function requestsPanel(){
+  const b=B, list=S.requests.filter(r=>r.b===b), pend=list.filter(r=>r.status==='pending'), done=list.filter(r=>r.status!=='pending').slice(-6).reverse();
+  const groups=[...new Set(pend.map(r=>K(r.port,r.pod)))].map(k=>k.split('|'));
+  const grow=([p,d])=>{ const fi=feedInfo(b,p), e=eff(b,p,d), u=used(b,p,d), o=base(b,p,d);
+    return `<tr><td><span class="pname">${nm(p)} <code class="muted">${p}</code><small>${fi?`Loading via ${sn(fi.hub)}`:'Vessel call'}</small></span></td>
+      <td><b>${sn(d)}</b></td>
+      <td class="num">Orig ${n0(o.teu)} / ${n0(o.mt)}<br>Rev ${n0(e.teu)} / ${n0(e.mt)}<br>Booked ${n0(u.teu)} / ${n0(u.mt)}</td>
+      <td>${decisionEditor(b,p,d,'rq',false)}</td></tr>`; };
+  const drow=r=>{ const [c,t]=statusChip(r); return `<tr><td><span class="pname">${nm(r.port)} <code class="muted">${r.port}</code><small>${esc(r.ref)}</small></span></td><td>${sn(r.pod)}${r.fpd!==r.pod?` → ${nm(r.fpd)}`:''}</td><td class="num">${tot(pick(r))}</td><td><span class="chip ${c}">${t}</span></td></tr>`; };
+  return `<section class="panel" id="requests" data-nav="Additional loading"><div class="ph"><div><h2>Additional loading requests</h2>
+    <p>Agents cannot book beyond allocation, so they ask here. Decide each port of discharge on its own: approve the full need, approve less, or reject. The requested bookings are confirmed up to what you approve, and the agent is told.</p></div>
+    <span class="chip ${pend.length?'warnc':'okc'}">${pend.length} pending</span></div>
+    ${groups.length?`<div class="tbl-wrap"><table><thead><tr><th>Port of load</th><th>POD</th><th class="num">Allocation</th><th>Decision</th></tr></thead><tbody>${groups.map(grow).join('')}</tbody></table></div>`:'<p class="empty">No requests waiting.</p>'}
+    ${done.length?`<h3>Recently decided</h3><div class="tbl-wrap"><table><thead><tr><th>Port of load</th><th>POD</th><th class="num">Requested</th><th>Result</th></tr></thead><tbody>${done.map(drow).join('')}</tbody></table></div>`:''}
+  </section>`;
+}
+// Release any amount up to the unused balance for one POL→POD; the rest stays with the port.
+function relForm(key,un,pre){
+  const d=key.split('|')[2];
+  const [b,p]=key.split('|');
+  return `<span class="relf"><span class="dec-h">Unused to ${sn(d)}: <b>${tot(un)}</b>. How much goes to the pool?</span>
+    ${pre==='hq'?relNote(b,p,d):''}
+    <span class="dec-r">${DIMS.map(x=>`<input type="number" min="0" max="${un[x.k]}" step="1" class="${x.k}" id="rl-${pre}-${key}-${x.k}" value="${un[x.k]}" aria-label="Release ${x.u}">`).join('')}</span>
+    <span class="acts">${reasonSel(`rs-${pre}-${key}`,'release')}<button type="button" class="danger armed sm" data-relpod="${key}" data-pre="${pre}">Release</button><button type="button" class="ghost sm" data-disarm>Cancel</button></span></span>`;
+}
+// Small actions inside each POD cell of the HQ board: review a request, release this POD's unused balance.
+function podActions(b,p,d){
+  const key=K(b,p,d), pend=reqs(b,p,'pending').filter(r=>r.pod===d), un=vpos(vsub(eff(b,p,d),used(b,p,d)));
+  let h='';
+  if(pend.length) h+= editCell===key ? decisionEditor(b,p,d,'ap',true) : `<button type="button" class="okb sm" data-opencell="${key}">Review +${n0(vsum(pend.map(pick)).teu)} TEU</button>`;
+  if(vany(un) && !closedP(b,p)) h+= armed==='rp:'+key
+    ? relForm(key,un,'hq')
+    : `<button type="button" class="ghost sm relb" data-arm="rp:${key}" title="Release unused balance to ${nm(d)} only">Release ${n0(un.teu)}</button>`;
+  return h?`<span class="cell-acts">${h}</span>`:'';
+}
+
+function forecastPanel(b,p){
+  const lk=fcLocked(b,p), ld=fcLockDate(b,p), F=fcP(b,p), U=usedP(b,p);
+  const rows=podsFor(b,p).map(d=>{ const e=eff(b,p,d), f=fc(b,p,d), hf=hasFc(b,p,d), u=used(b,p,d), gap=vsub(f,e), over=hf&&(gap.teu>0||gap.mt>0);
+    return `<tr><td><span class="pname">${sn(d)} <code class="muted">${d}</code></span></td>
+      <td class="num">${n0(e.teu)}<br><span class="wt">${n0(e.mt)} MT</span></td>
+      <td class="num"><span class="pair" style="justify-content:flex-end;display:flex;gap:4px">${DIMS.map(x=>`<input type="number" min="0" step="1" class="${x.k}" id="fc-${d}-${x.k}" value="${hf?f[x.k]:''}" placeholder="—" ${lk?'disabled':''} aria-label="Forecast to ${nm(d)} ${x.u}">`).join('')}</span></td>
+      <td class="num">${n0(u.teu)}<br><span class="wt">${n0(u.mt)} MT</span></td>
+      <td class="num">${!hf?'<span class="muted">No forecast</span>':over?`<span class="fo">${gap.teu>0?`+${n0(gap.teu)} TEU`:''}${gap.teu>0&&gap.mt>0?' / ':''}${gap.mt>0?`+${n0(gap.mt)} MT`:''} over</span>`:`<span class="muted">${n0(-gap.teu)} TEU under</span>`}</td></tr>`; }).join('');
+  return `<section class="panel" data-nav="Forecast"><div class="ph"><div><h2>Forecast</h2>
+    <p>What you expect to load to each discharge port, in TEU and tonnage. HQ uses it to adjust allocation before cut-off. ${lk?`Locked since ${fmt(ld)}, 7 days before ETA.`:`Editable until ${fmt(ld)}, 7 days before ETA. It then locks so booked can be measured against it.`}</p></div>
+    ${lk?'<span class="chip closed">Locked</span>':'<button type="button" class="primary" data-savefc>Save forecast</button>'}</div>
+    <div class="tbl-wrap"><table><thead><tr><th>Port of discharge</th><th class="num">Allocation</th><th class="num">Forecast<small>TEU · MT</small></th><th class="num">Booked</th><th class="num">Forecast vs allocation</th></tr></thead><tbody>${rows}</tbody></table></div>
+    ${vany(F)?`<p class="note">Booked so far is ${F.teu?Math.round(U.teu/F.teu*100):0}% of forecast TEU and ${F.mt?Math.round(U.mt/F.mt*100):0}% of forecast tonnage.</p>`:''}
+  </section>`;
+}
+
+function myRequests(b,p){
+  const list=reqs(b,p); if(!list.length) return '';
+  return `<h3>Additional loading requests</h3><div class="tbl-wrap"><table><thead><tr><th>Ref</th><th>POD</th><th class="num">TEU</th><th class="num">MT</th><th>Status</th><th></th></tr></thead><tbody>${
+    list.slice().reverse().map(r=>`<tr><td class="mono">${esc(r.ref)}</td><td>${sn(r.pod)}${r.fpd!==r.pod?` → ${nm(r.fpd)}`:''}</td><td class="num">${n0(r.teu)}</td><td class="num wt">${n0(r.mt)}</td>
+      <td>${(()=>{ const [c,t]=statusChip(r); return `<span class="chip ${c}">${t}</span>`; })()}</td>
+      <td>${r.status==='pending'?`<button type="button" class="ghost" data-withdraw="${r.id}">Withdraw</button>`:''}</td></tr>`).join('')
+  }</tbody></table></div>`;
+}
+
+/* ---- Port performance over the year (HQ) ----
+   Measured against ORIGINAL allocation only. Extra balance a port receives later (pool, HQ approval) raises the revised
+   allocation, but loading less than that extra is never counted against the port. */
+const HIST_WEEKS = 41;                               // completed 2026 voyages before the live ones (sample history)
+let HIST=null, perfSel=null, perfPeriod='ytd';
+function rng(seed){ return ()=>{ seed=seed+0x6D2B79F5|0; let t=Math.imul(seed^seed>>>15,1|seed); t=t+Math.imul(t^t>>>7,61|t)^t; return ((t^t>>>14)>>>0)/4294967296; }; }
+function history(){
+  if(HIST) return HIST;
+  const tpl=ALL.voyages[VOYAGES[0].id]; HIST={};
+  Object.keys(BOUNDS).forEach((b,bi)=>{
+    [...new Set(tpl.alloc.filter(a=>a.b===b).map(a=>a.port))].forEach((p,pi)=>{
+      const r=rng(pi*97+bi*1013+7), al=tpl.alloc.filter(a=>a.b===b&&a.port===p);
+      const bt=al.reduce((s,a)=>s+a.teu,0), bm=al.reduce((s,a)=>s+a.mt,0), mpt=bm/bt;
+      const reliab=0.8+r()*0.28, ns=0.03+r()*0.12, rows=[];        // ns: this port's typical no-show rate
+      for(let w=1;w<=HIST_WEEKS;w++){
+        const ot=Math.max(5,Math.round(bt*(0.85+r()*0.3)/5)*5), om=Math.round(ot*mpt);
+        const et = r()<0.35 ? Math.round(ot*(0.1+r()*0.4)) : 0;          // extra balance from pool / HQ approval
+        let lt=Math.round(ot*(reliab+(r()-0.5)*0.25) + et*(0.3+r()*0.7));
+        lt=Math.max(0,Math.min(ot+et,lt));
+        const relT = (!et && lt<ot && r()<0.6) ? ot-lt : 0;            // released unused at cut-off
+        const rt=ot+et-relT;
+        rows.push({w, voy:String(370+w).padStart(4,'0'), ot, om, rt, rm:Math.round(rt*mpt), lt, lm:Math.round(lt*mpt*(0.9+r()*0.2)), et, relT, bt:Math.round(lt/(1-ns*(0.6+r()*0.8)))});
+      }
+      HIST[b+'|'+p]=rows;
+    });
+  });
+  return HIST;
+}
+function perfStats(rows){
+  const s={n:rows.length,O:Z(),R:Z(),L:Z(),met:Z(),xGiven:0,xUsed:0,miss:0,Bk:0};
+  rows.forEach(x=>{
+    s.Bk+=x.bt||x.lt;
+    s.O=vadd(s.O,{teu:x.ot,mt:x.om}); s.R=vadd(s.R,{teu:x.rt,mt:x.rm}); s.L=vadd(s.L,{teu:x.lt,mt:x.lm});
+    s.met=vadd(s.met,{teu:Math.min(x.lt,x.ot),mt:Math.min(x.lm,x.om)});
+    s.xGiven+=Math.max(0,x.rt-x.ot); s.xUsed+=Math.max(0,x.lt-x.ot); if(x.lt<x.ot) s.miss++;
+  });
+  s.fulT=s.O.teu?s.met.teu/s.O.teu:0; s.fulM=s.O.mt?s.met.mt/s.O.mt:0;
+  return s;
+}
+const pct = x => Math.round(x*100)+'%';
+const grade = f => f>=.95?{c:'okc',t:'Met'}:f>=.85?{c:'warnc',t:'Watch'}:{c:'over',t:'Below'};
+function spark(rows){
+  const v=rows.map(x=>x.ot?Math.min(1.3,x.lt/x.ot):0), W=96, H=26, lo=.5, hi=1.3;
+  const y=val=>H-2-((Math.max(lo,val)-lo)/(hi-lo))*(H-4), x=i=>2+i*(W-4)/Math.max(1,v.length-1);
+  return `<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" aria-hidden="true"><line x1="2" x2="${W-2}" y1="${y(1)}" y2="${y(1)}" stroke="var(--muted)" stroke-dasharray="2 2" stroke-width="1"/>
+    <polyline fill="none" stroke="var(--navy)" stroke-width="1.6" points="${v.map((a,i)=>`${x(i).toFixed(1)},${y(a).toFixed(1)}`).join(' ')}"/>
+    ${v.map((a,i)=>a<1?`<circle cx="${x(i).toFixed(1)}" cy="${y(a).toFixed(1)}" r="1.8" fill="var(--bad)"/>`:'').join('')}</svg>`;
+}
+function perfPanel(){
+  const b=B, H=history(), n={ytd:HIST_WEEKS,q:13,m:4}[perfPeriod];
+  const cut=rows=>rows.slice(-n);
+  let body='';
+  BD(b).pols.forEach(pol=>{
+    const ports=[pol,...feedersOf(b,pol)].filter(p=>H[b+'|'+p]); if(!ports.length) return;
+    const via=ports.filter(x=>x!==pol), key=b+'|'+pol, open=expanded.has(key)||via.includes(perfSel);
+    body+=`<tr class="grp"><td colspan="12"><span class="gl"><b>${nm(pol)}</b>${via.length?` <button type="button" class="tog" data-tog="${key}" aria-expanded="${open}">${open?'▾ Hide':'▸ Show'} ${via.length} port${via.length>1?'s':''} loading via ${sn(pol)}</button>`:''}</span></td></tr>`;
+    ports.filter(p=>p===pol||open).forEach(p=>{
+      const rows=cut(H[b+'|'+p]), s=perfStats(rows), g=grade(s.fulT), fi=feedInfo(b,p);
+      body+=`<tr class="${fi?'feeder':''} ${perfSel===p?'self':''}">
+        <td><button type="button" class="ghost" style="color:var(--ink);padding:0;text-align:left" data-perf="${p}"><span class="pname">${fi?'↳ ':''}${nm(p)} <code class="muted">${p}</code><small>${perfSel===p?'Hide voyages':'Show voyages'}</small></span></button></td>
+        <td class="num">${s.n}</td>
+        <td class="num"><b>${n0(s.O.teu)}</b><br><span class="wt">${n0(s.O.mt)} MT</span></td>
+        <td class="num">${n0(s.R.teu)}<br><span class="wt">${n0(s.R.mt)} MT</span></td>
+        <td class="num">${n0(s.Bk)}</td>
+        <td class="num">${n0(s.L.teu)}<br><span class="wt">${n0(s.L.mt)} MT</span></td>
+        <td class="num">${s.Bk?pct(Math.max(0,1-s.L.teu/s.Bk)):'—'}</td>
+        <td class="util"><span class="u"><span>TEU</span>${meter(s.met.teu,s.O.teu)}<span class="num">${pct(s.fulT)}</span></span><span class="u"><span>MT</span>${meter(s.met.mt,s.O.mt,'mtm')}<span class="num">${pct(s.fulM)}</span></span></td>
+        <td class="num">${s.xGiven?`${n0(s.xUsed)} of ${n0(s.xGiven)}<br><small class="muted">${pct(s.xUsed/s.xGiven)} used</small>`:'<span class="muted">—</span>'}</td>
+        <td class="num">${s.miss} of ${s.n}</td>
+        <td>${spark(rows.slice(-13))}</td>
+        <td><span class="chip ${g.c}">${g.t}</span></td></tr>`;
+    });
+  });
+  let detail='';
+  if(perfSel && H[b+'|'+perfSel]){
+    const rows=cut(H[b+'|'+perfSel]).slice().reverse();
+    detail=`<div id="perf-detail"><h3>${nm(perfSel)} · voyage by voyage</h3><div class="tbl-wrap"><table><thead><tr><th>Voyage</th><th class="num">Original</th><th class="num">Revised</th><th class="num">Loaded</th><th>Result</th></tr></thead><tbody>${
+      rows.map(x=>{ const res = x.lt>=x.ot
+          ? (x.et?`<span class="chip okc">Met original · used ${n0(x.lt-x.ot)} of ${n0(x.et)} extra</span>`:`<span class="chip okc">Met original</span>`)
+          : `<span class="chip over">Short ${n0(x.ot-x.lt)} TEU</span>${x.relT?` <span class="tag rel">released ${n0(x.relT)}</span>`:''}`;
+        return `<tr><td><span class="pname">${x.voy}${b==='WB'?'W':'E'}<small>2026 week ${x.w}</small></span></td><td class="num">${n0(x.ot)}<br><span class="wt">${n0(x.om)} MT</span></td><td class="num">${n0(x.rt)}<br><span class="wt">${n0(x.rm)} MT</span></td><td class="num"><b>${n0(x.lt)}</b><br><span class="wt">${n0(x.lm)} MT</span></td><td>${res}</td></tr>`; }).join('')
+    }</tbody></table></div></div>`;
+  }
+  return `<section class="panel" data-nav="Port performance"><div class="ph"><div><h2>Port performance · ${BD(b).label} 2026</h2>
+    <p>Loaded against <b>original</b> allocation, ${HIST_WEEKS} completed voyages so far this year. Extra balance a port receives later raises its revised allocation but never counts against it. Example: original 100, given 50 more from the pool, loaded 140. That is 100% of original, with 40 of the 50 extra used; the unused 10 is not a shortfall.</p></div>
+    <div class="field"><label for="perf-period">Period</label><select id="perf-period"><option value="ytd" ${perfPeriod==='ytd'?'selected':''}>Year to date</option><option value="q" ${perfPeriod==='q'?'selected':''}>Last 13 voyages</option><option value="m" ${perfPeriod==='m'?'selected':''}>Last 4 voyages</option></select></div></div>
+    <div class="tbl-wrap"><table><thead><tr><th>Port of load</th><th class="num">Voyages</th><th class="num">Original</th><th class="num">Revised</th><th class="num">Booked</th><th class="num">Loaded</th><th class="num">No-show<small>booked, not loaded</small></th><th>Original fulfilment<small>loaded up to original</small></th><th class="num">Extra used</th><th class="num">Missed original</th><th>Last 13 voyages<small>dash = 100% of original</small></th><th>Rating</th></tr></thead><tbody>${body}</tbody></table></div>
+    ${detail}
+    <p class="note">Rating: Met at 95% of original or more, Watch from 85%, Below under 85%. History is generated sample data until it is connected to actual loading.</p>
+  </section>`;
+}
+
+function loadListPanel(){
+  const b=B, ob=ALL.ob, ports=[];
+  BD(b).pols.forEach(pol=>groupPorts(b,pol).forEach(p=>{ if(sailed(b,p)) ports.push(p); }));
+  const rows=ports.map(p=>{ const L=loadedP(b,p), U=usedP(b,p), fi=feedInfo(b,p);
+    return `<tr><td><span class="pname">${fi?'↳ ':''}${nm(p)} <code class="muted">${p}</code><small>Sailed ${fmt(E(lci(b,p)))}${fi?` · via ${sn(fi.hub)}`:''}</small></span></td>
+      ${BD(b).pods.map(d=>{ if(!podOK(b,p,d)) return '<td class="na">·</td>'; const u=used(b,p,d), l=loadedOf(b,p,d); if(!u.teu&&!l) return '<td class="num muted">—</td>';
+        return `<td class="pod-cell num"><span class="pair">${DIMS.map(x=>`<input type="number" min="0" step="1" class="${x.k}" id="ld-${b}-${p}-${d}-${x.k}" value="${l?l[x.k]:''}" placeholder="${u[x.k]}" aria-label="Loaded ${nm(p)} to ${nm(d)} ${x.u}">`).join('')}</span><span class="sub">booked ${n0(u.teu)} / ${n0(u.mt)}</span></td>`; }).join('')}
+      <td class="num">${L?`<b>${n0(L.teu)}</b> of ${n0(U.teu)} TEU<br><small class="muted">no-show ${U.teu?pct(Math.max(0,1-L.teu/U.teu)):'—'}</small>`:'<span class="muted">Not entered</span>'}</td>
+      <td><button type="button" class="primary sm" data-saveload="${p}">Save</button></td></tr>`; }).join('');
+  const all=origins(b).filter(p=>lci(b,p)!==undefined);
+  return `<section class="panel" data-nav="Load list"><div class="ph"><div><h2>Load list · booked vs loaded</h2>
+    <p>Once the vessel sails from a port, enter what actually loaded per discharge port. The gap to booked is the no-show. Each port's no-show rate over its last 13 voyages lets its agent book above allocation by that much, up to the cap.</p></div>
+    <div class="form"><label class="chk" for="ob-on"><input type="checkbox" id="ob-on" ${ob.on?'checked':''}> Allow overbooking by no-show rate</label>
+    <div class="field"><label for="ob-cap">Cap</label><select id="ob-cap">${[0.05,0.08,0.1,0.15].map(v=>`<option value="${v}" ${ob.cap===v?'selected':''}>${pct(v)}</option>`).join('')}</select></div></div></div>
+    ${ports.length?`<div class="tbl-wrap"><table><thead><tr><th>Port of load</th>${BD(b).pods.map(d=>`<th class="num">→ ${sn(d)}<small>loaded TEU · MT</small></th>`).join('')}<th class="num">Loaded vs booked</th><th></th></tr></thead><tbody>${rows}</tbody></table></div>`:'<p class="empty">No port on this bound has sailed yet on this vessel.</p>'}
+    <details class="fold"><summary>No-show rate and booking allowance by port</summary>
+    <div class="tbl-wrap"><table><thead><tr><th>Port of load</th><th class="num">No-show<small>last 13 voyages</small></th><th class="num">Allowance now</th><th class="num">Can book up to</th></tr></thead><tbody>${
+      all.map(p=>{ const e=effP(b,p), cap=vsum(BD(b).pods.map(d=>capOf(b,p,d))), a=allowance(b,p);
+        return `<tr><td><span class="pname">${nm(p)}</span></td><td class="num">${pct(nsRate(b,p))}</td><td class="num">${a?'+'+pct(a):'<span class="muted">off</span>'}</td><td class="num">${n0(cap.teu)} TEU<br><small class="muted">allocation ${n0(e.teu)}</small></td></tr>`; }).join('')
+    }</tbody></table></div></details>
+  </section>`;
+}
+
+function equipPanel(){
+  const b=B, ports=[]; BD(b).pols.forEach(pol=>groupPorts(b,pol).forEach(p=>ports.push(p)));
+  const tot=eqSum(S.bookings.filter(x=>x.b===b)), units=tot.e20+tot.e40+tot.ehc;
+  const body=ports.map(p=>{ const s=eqSum(bksOf(b,p)), u=s.e20+s.e40+s.ehc, fi=feedInfo(b,p);
+    return `<tr class="${fi?'feeder':''}"><td><span class="pname">${fi?'↳ ':''}${nm(p)} <code class="muted">${p}</code>${fi?`<small>Loading via ${sn(fi.hub)}</small>`:''}</span></td>
+      <td class="num">${n0(s.e20)}</td><td class="num">${n0(s.e40)}</td><td class="num">${n0(s.ehc)}</td>
+      <td class="num">${u?pct((s.e40+s.ehc)/u):'—'}</td>
+      <td>${s.dg?Object.entries(s.cls).map(([c,n])=>`<span class="chip dgc">Cl.${c} × ${n}</span>`).join(' '):'<span class="muted">—</span>'}</td>
+      <td class="num">${s.oog?`${s.oog} units<br><small class="muted">${s.lost} TEU lost</small>`:'<span class="muted">—</span>'}</td></tr>`; }).join('');
+  const idx=BD(b).calls.slice(0,-1);
+  const lim=(v,cap)=>`<b style="color:${v>cap?'var(--bad)':v>cap*0.85?'var(--warn)':'var(--ink)'}">${v}</b><small class="muted"> / ${cap}</small>`;
+  const rulePorts=[...new Set([...BD(b).pols,...BD(b).pods])];
+  return `<section class="panel" data-nav="Equipment & special cargo"><div class="ph"><div><h2>Equipment & special cargo</h2>
+    <p>Box mix and special cargo booked on the ${BD(b).label.toLowerCase()} leg. Dangerous goods are checked against each port's accepted IMO classes and the vessel's DG limit. Out-of-gauge units count the slots they block against allocation and vessel capacity.</p></div>
+    <span class="chip open">${n0(units)} boxes · ${units?pct((tot.e40+tot.ehc)/units):'0%'} 40' · DG ${tot.dg} · OOG ${tot.oog}</span></div>
+    <div class="tbl-wrap"><table><thead><tr><th>Port of load</th><th class="num">20'</th><th class="num">40'</th><th class="num">40'HC</th><th class="num">40' share</th><th>Dangerous goods<small>units by IMO class</small></th><th class="num">Out-of-gauge</th></tr></thead><tbody>${body}</tbody></table></div>
+    <div class="tbl-wrap"><table><thead><tr><th>Leg</th>${idx.map(i=>`<th class="num">${ROT[i].port.slice(2)}→${ROT[i+1].port.slice(2)}</th>`).join('')}</tr></thead><tbody>
+      <tr><td>DG units on board<small class="muted"> limit ${VESSEL.dgCap}</small></td>${idx.map(i=>`<td class="num">${lim(spLeg(i).dg,VESSEL.dgCap)}</td>`).join('')}</tr>
+      <tr><td>OOG units on board<small class="muted"> limit ${VESSEL.oogCap}</small></td>${idx.map(i=>`<td class="num">${lim(spLeg(i).oog,VESSEL.oogCap)}</td>`).join('')}</tr>
+    </tbody></table></div>
+    <details class="fold"><summary>Port DG rules (sample)</summary><div class="tbl-wrap"><table><thead><tr><th>Port</th><th>Classes not accepted</th><th>Note</th></tr></thead><tbody>${
+      rulePorts.map(p=>{ const r=DG_RULES[p]||{ban:[],note:'No restriction recorded'}; return `<tr><td><span class="pname">${nm(p)} <code class="muted">${p}</code></span></td><td>${r.ban.length?r.ban.map(c=>`<span class="chip over">Class ${c}</span>`).join(' '):'<span class="muted">None</span>'}</td><td class="muted">${esc(r.note)}</td></tr>`; }).join('')
+    }</tbody></table></div><p class="note">Rules are checked at the port of load (or the call a feeder port loads via) and the port of discharge. Transit restrictions at intermediate calls are not checked yet.</p></details>
+  </section>`;
+}
+
+function reeferPanel(){
+  const b=B;
+  const ports=[]; BD(b).pols.forEach(pol=>groupPorts(b,pol).forEach(p=>ports.push(p)));
+  const L=legs(); const idx=BD(b).calls.slice(0,-1);
+  const totA=sumf(Object.keys(S.rfAlloc).filter(k=>k.startsWith(b+'|')),k=>S.rfAlloc[k]);
+  return `<section class="panel wide-half" data-nav="Reefer plug BSA"><div class="ph"><div><h2>Reefer plug BSA</h2>
+    <p>The vessel has ${VESSEL.plugs} reefer plugs. Give a port its own plug BSA to reserve plugs for it, or leave it blank so the port books from the vessel's free plugs. Plugs count units, one per reefer container. RF TEU is shown for monitoring.</p></div>
+    <span class="chip rfc">${totA} plugs released to ports on ${BD(b).label.toLowerCase()}</span></div>
+    <div class="tbl-wrap"><table><thead><tr><th>Port of load</th><th class="num">Port RF BSA<small>plugs, blank = vessel pool</small></th><th class="num">Plugs used</th><th class="num">RF TEU loaded</th><th>Use</th></tr></thead><tbody>${
+      ports.map(p=>{ const a=rfA(b,p), u=rfUsed(b,p), t=rfTeuUsed(b,p), fi=feedInfo(b,p);
+        return `<tr class="${fi?'feeder':''}"><td><span class="pname">${fi?'↳ ':''}${nm(p)} <code class="muted">${p}</code><small>${fi?`Loading via ${sn(fi.hub)}`:'Vessel call'}</small></span></td>
+        <td class="num"><input type="number" min="0" step="1" id="rf-${b}-${p}" data-rf="${b}|${p}" value="${a??''}" placeholder="pool" aria-label="Reefer plug BSA for ${nm(p)}"></td>
+        <td class="num rft"><b>${u}</b></td><td class="num">${t}</td>
+        <td class="util">${a!==undefined?`${meter(u,a,'rfm')}<span class="muted" style="font-size:.74rem">${a-u} plugs held</span>`:`<span class="muted" style="font-size:.8rem">From vessel pool</span>`}</td></tr>`;}).join('')
+    }</tbody></table></div>
+    <div class="tbl-wrap"><table><thead><tr><th>Leg</th>${idx.map(i=>`<th class="num">${ROT[i].port.slice(2)}→${ROT[i+1].port.slice(2)}</th>`).join('')}</tr></thead><tbody>
+      <tr><td>Reefers on board</td>${idx.map(i=>`<td class="num">${L[i].rf.booked}</td>`).join('')}</tr>
+      <tr><td>Held for ports</td>${idx.map(i=>`<td class="num">${L[i].rf.held}</td>`).join('')}</tr>
+      <tr><td><b>Free plugs</b></td>${idx.map(i=>{const f=VESSEL.plugs-L[i].rf.booked-L[i].rf.held; return `<td class="num"><b style="color:${f<0?'var(--bad)':'var(--rf)'}">${f}</b></td>`;}).join('')}</tr>
+      <tr><td class="muted">RF TEU on board</td>${idx.map(i=>`<td class="num muted">${L[i].rf.rteu}</td>`).join('')}</tr>
+    </tbody></table></div>
+    <p class="note">Legs include reefers from both bounds. A port's unused plug BSA is held until the last port of discharge on its bound, and goes back to the vessel pool when the port releases at cut-off.</p>
+  </section>`;
+}
+
+function hqView(){
+  const b=B;
+  const opts=[]; BD(b).pols.forEach(pol=>{ opts.push(pol); feedersOf(b,pol).forEach(f=>opts.push(f)); });
+  const sources = origins(b).filter(u=>vany(relP(b,u)));
+  return `<div class="grid">${alerts()}${reminder()}
+    <section class="panel" data-nav="Allocation board"><div class="ph"><div><h2>${BD(b).label} allocation board</h2>
+      <p>Set TEU and tonnage per port of load and port of discharge. Ports without a call are grouped under the call they join, so a group total is what loads at that call. A port is full when it runs out of either TEU or tonnage. A dot means that discharge port comes before the load port.</p></div>
+      <div class="acts"><button type="button" class="ghost sm" data-togall="1">Expand all</button><button type="button" class="ghost sm" data-togall="0">Collapse all</button></div></div>
+      ${board(b,()=>true,{editable:true})}
+    </section>
+
+    ${heatPanel()}
+    ${requestsPanel()}
+    ${rulesPanel()}
+    <section class="panel half" data-nav="Release allocation"><div class="ph"><div><h2>Release allocation to a port</h2><p>Pick any port on this bound. Feeder and transhipment ports group under their load call automatically.</p></div></div>
+      <form class="form" id="f-alloc">
+        <div class="field"><label for="na-port">Port of load</label><select id="na-port">${opts.map(p=>{const fi=feedInfo(b,p); return `<option value="${p}">${nm(p)}${fi?` (via ${fi.hub.slice(2)}${fi.svc?' · '+fi.svc:''})`:''}</option>`;}).join('')}</select></div>
+        <div class="field"><label for="na-pod">Port of discharge</label><select id="na-pod"></select></div>
+        <div class="field"><label for="na-teu">TEU</label><input id="na-teu" type="number" min="0" step="1" value="20"></div>
+        <div class="field"><label for="na-mt">Tonnage (MT)</label><input id="na-mt" class="mt" type="number" min="0" step="1" value="${20*BD(b).mtPerTeu}"></div>
+        <button class="primary" type="submit">Add allocation</button>
+      </form>
+      <p class="hint" id="na-hint"></p>
+    </section>
+
+    <section class="panel half" data-nav="Balance pool"><div class="ph"><div><h2>Balance pool</h2><p>Unused TEU and tonnage balance released at cut-off. Ports loading at the same or a later call on this bound can take it.</p></div></div>
+      ${sources.length? `<div class="tbl-wrap"><table><thead><tr><th>Released by</th><th class="num">Released</th><th class="num">Available</th><th>Taken by</th></tr></thead><tbody>${
+        sources.map(u=>{ const cl=S.claims.filter(c=>c.b===b&&c.from===u); const av=poolFrom(b,u); return `<tr><td class="pname">${nm(u)}</td><td class="num">${qty(relP(b,u))}</td><td class="num"><b style="color:var(--accent)">${n0(av.teu)} TEU</b><br><span class="wt">${n0(av.mt)} MT</span></td><td>${cl.map(c=>`${nm(c.port)} ${n0(c.teu)} TEU / ${n0(c.mt)} MT → ${sn(c.pod)}`).join('<br>')||'<span class="muted">—</span>'}</td></tr>`}).join('')
+      }</tbody></table></div>` : '<p class="empty">No balance released on this bound yet.</p>'}
+      <h3>Activity</h3>
+      <ul class="log">${ALL.log.slice(-6).reverse().map(l=>`<li><time>${esc(l.t)}</time><span>${esc(l.m)}</span></li>`).join('')}</ul>
+    </section>
+    ${loadListPanel()}
+    ${schedPanel()}
+    ${contractPanel()}
+    ${iaPanel()}
+    ${iaWeekPanel()}
+    ${pipelinePanel()}
+    ${reeferPanel()}
+    ${equipPanel()}
+    ${perfPanel()}
+    ${connections()}
+    ${dischargePlan(b,S.bookings.filter(x=>x.b===b),'Discharge plan','What comes off at each port of discharge, split into direct discharge and transhipment, with the connecting service.')}
+  </div>`;
+}
+
+function inboundView(){
+  const b=B, p=role;
+  if(isPod(b,p)) return `<div class="grid">${alerts()}${reminder()}
+    <section class="panel"><div class="ph"><div><div class="eyebrow">${BD(b).label} · you discharge here · ETA ${fmt(E(ci(b,p)))}</div><h2>${nm(p)} inbound</h2>
+      <p>${nm(p)} does not load on the ${BD(b).label.toLowerCase()} leg. Below is what this voyage brings to you. Switch bound in the top bar to manage your loading.</p></div></div></section>
+    ${dischargePlan(b,S.bookings.filter(x=>x.b===b),'Cargo discharging at '+nm(p),'Direct cargo for your port, plus boxes you hand over for onward transhipment.',p)}
+    ${iaWeekPanel()}
+    ${pipelinePanel()}</div>`;
+  return `<div class="grid"><section class="panel"><h2>${nm(p)} has no ${BD(b).label.toLowerCase()} activity</h2><p class="note">Switch bound in the top bar.</p></section></div>`;
+}
+
+function rfCard(b,p){
+  const a=rfA(b,p), u=rfUsed(b,p), t=rfTeuUsed(b,p);
+  const far=podsFor(b,p).slice(-1)[0];
+  const free = far ? Math.max(0,rfRoom(b,p,far)) : 0;
+  return `<div class="mcard rfcard"><span class="eyebrow">Reefer plugs</span>
+    ${a!==undefined
+      ? `<div class="bigs"><span class="big rft">${Math.max(0,a-u)} <small>plugs left</small></span></div>${meter(u,a,'rfm')}
+         <span class="ln">Your RF BSA ${a} plugs · ${u} used · ${t} RF TEU</span>`
+      : `<div class="bigs"><span class="big rft">${free} <small>vessel plugs free</small></span></div>
+         <span class="ln">No port RF BSA. You book from the vessel's free plugs, first come first served. ${u} used · ${t} RF TEU.</span>`}
+  </div>`;
+}
+
+function agentView(){
+  const b=B, p=role;
+  if(!loadsIn(b,p)) return inboundView();
+  const fi=feedInfo(b,p), myL=lci(b,p), closed=closedP(b,p);
+  const myPods = BD(b).pods.filter(d=>vany(eff(b,p,d))||vany(base(b,p,d)));
+  const cards = myPods.map(d=>{
+    const bs=base(b,p,d), e=eff(b,p,d), u=used(b,p,d), r=rel(b,p,d), c=claimedIn(b,p,d), left=bookLeft(b,p,d);
+    return `<div class="mcard"><span class="eyebrow">To ${sn(d)} · ${d}</span>
+      <div class="bigs"><span class="big">${n0(Math.max(0,left.teu))} <small>TEU left</small></span><span class="big wt">${n0(Math.max(0,left.mt))} <small>MT left</small></span></div>
+      ${meter(u.teu,e.teu)}${meter(u.mt,e.mt,'mtm')}
+      <span class="ln">Booked ${qty(u)} of ${qty(e)}</span>
+      ${allowance(b,p)?`<span class="ln">You may book up to <b>${n0(capOf(b,p,d).teu)} TEU</b>: +${pct(allowance(b,p))} allowance for your port's usual no-shows.</span>`:''}
+      <span class="ln">Original ${n0(bs.teu)} TEU / ${n0(bs.mt)} MT${(()=>{ const xa=extraIn(b,p,d); return vany(xa)?` · +${n0(xa.teu)}/${n0(xa.mt)} approved`:''; })()}${vany(c)?` · +${n0(c.teu)}/${n0(c.mt)} from pool`:''}${vany(r)?` · −${n0(r.teu)}/${n0(r.mt)} released`:''}</span>
+      ${(()=>{ const un=vpos(vsub(e,u)), key=K(b,p,d); if(closed||!vany(un)) return '';
+        return `<span class="acts">${armed==='rp:'+key
+          ? relForm(key,un,'ag')
+          : `<button type="button" class="ghost sm relb" data-arm="rp:${key}">Release unused to ${sn(d)}</button>`}</span>`; })()}</div>`;
+  }).join('');
+  const visible = q => q!==p && lci(b,q)<=myL;
+  const sources = origins(b).filter(u=>u!==p && vany(poolFrom(b,u)) && lci(b,u)<=myL);
+  const myBk = S.bookings.filter(x=>x.b===b&&x.port===p);
+  const podOpts = podsFor(b,p).map(d=>`<option value="${d}">${nm(d)}</option>`).join('');
+  const un=vpos(vsub(effP(b,p),usedP(b,p)));
+  const ra=rfA(b,p), rfHeld=ra!==undefined?Math.max(0,ra-rfUsed(b,p)):0;
+  return `<div class="grid">${alerts()}${reminder()}
+    <section class="panel" data-nav="My allocation"><div class="ph"><div>
+      <div class="eyebrow">${BD(b).label} · ${fi?`Loading via ${sn(fi.hub)} · ${fi.svc?fi.svc+' service':fi.land}`:'Vessel call'} · cut-off ${cutoff(E(myL))}</div>
+      <h2>${nm(p)} <code class="muted">${p}</code> allocation</h2></div>
+      <div>${closed?'<span class="chip closed">Released. Booking closed.</span>': armed===p
+        ? `<div class="acts">${reasonSel('rs-port-'+p,'release')}<button type="button" class="danger armed" data-release="${p}">Release ${n0(un.teu)} TEU / ${n0(un.mt)} MT${rfHeld?` / ${rfHeld} plugs`:''} and close</button><button type="button" class="ghost" data-disarm>Cancel</button></div>`
+        : `<button type="button" class="danger" data-arm="${p}" ${vany(un)||rfHeld?'':'disabled'}>Release unused balance</button>`}</div></div>
+      <div class="mine">${cards||'<p class="empty">HQ has not released allocation to this port yet.</p>'}${rfCard(b,p)}</div>
+    </section>
+
+    ${forecastPanel(b,p)}
+    <section class="panel two3" data-nav="Book cargo"><div class="ph"><div><h2>Book cargo</h2><p>Final destination decides the handling: same as the port of discharge is direct, anything else is transhipped there. TEU, tonnage and reefer plugs must all fit.</p></div></div>
+      <form class="form" id="f-book">
+        <div class="field"><label for="bk-ref">Booking ref</label><input id="bk-ref" type="text" value="${p.slice(2)}${b==='WB'?'W':'E'}${Math.floor(Math.random()*9000)+1000}" style="width:9em"></div>
+        <div class="field"><label for="bk-pod">Port of discharge</label><select id="bk-pod">${podOpts}</select></div>
+        <div class="field"><label for="bk-fpd">Final destination</label><select id="bk-fpd"></select></div>
+        <div class="field"><label for="bk-cust">Customer</label><select id="bk-cust"><option value="">Spot / other</option>${contractsOf(b,p).map(c=>`<option value="${esc(c.customer)}">${esc(c.customer)}</option>`).join('')}</select></div>
+        <div class="field"><label for="bk-e20">20'</label><input id="bk-e20" type="number" min="0" step="1" value="2"></div>
+        <div class="field"><label for="bk-e40">40'</label><input id="bk-e40" type="number" min="0" step="1" value="1"></div>
+        <div class="field"><label for="bk-ehc">40'HC</label><input id="bk-ehc" type="number" min="0" step="1" value="0"></div>
+        <div class="field"><label for="bk-teu">TEU</label><input id="bk-teu" class="ro" type="number" value="4" readonly tabindex="-1" title="Worked out from the boxes, plus slots lost to out-of-gauge"></div>
+        <div class="field"><label for="bk-mt">Gross weight (MT)</label><input id="bk-mt" class="mt" type="number" min="0" step="1" value="${4*BD(b).mtPerTeu}"></div>
+        <div class="field rfx"><label for="bk-rf">Reefer units</label><input id="bk-rf" type="number" min="0" step="1" value="0"></div>
+        <div class="field rfx"><label for="bk-rfteu">Reefer TEU</label><input id="bk-rfteu" type="number" min="0" step="1" value="0"></div>
+        <div class="field spx"><label for="bk-dg">DG units</label><input id="bk-dg" type="number" min="0" step="1" value="0"></div>
+        <div class="field spx"><label for="bk-dgc">IMO class</label><select id="bk-dgc">${DG_CLASSES.map(c=>`<option value="${c}" ${c===3?'selected':''}>Class ${c}</option>`).join('')}</select></div>
+        <div class="field spx"><label for="bk-oog">OOG units</label><input id="bk-oog" type="number" min="0" step="1" value="0"></div>
+        <div class="field spx"><label for="bk-lost">TEU lost per OOG</label><input id="bk-lost" type="number" min="0" step="1" value="2"></div>
+        <button class="primary" type="submit" ${closed?'disabled':''}>Add booking</button>
+      </form>
+      <p class="hint" id="bk-hint"></p>
+      ${contractsOf(b,p).length?`<p class="note">Contract reserve at ${nm(p)}: ${contractsOf(b,p).map(c=>{ const u=ctUsed(c); return `<b>${esc(c.customer)}</b> ${n0(u.teu)} of ${n0(c.teu)} TEU`; }).join(' · ')}. Unfilled reserve (${tot(ctUnfilled(b,p))}) is held for these customers; spot bookings cannot use it.</p>`:''}
+      ${myBk.length?`<div class="tbl-wrap"><table><thead><tr><th>Ref</th><th>POD</th><th>Final destination</th><th>Handling</th><th class="num">TEU<small>boxes</small></th><th class="num">MT</th><th class="num">RF</th><th>Special</th><th></th></tr></thead><tbody>${
+        myBk.slice().reverse().map(x=>`<tr><td class="mono">${esc(x.ref)}${x.customer?`<br><small class="muted">${esc(x.customer)}</small>`:''}</td><td>${sn(x.pod)}</td><td>${nm(x.fpd)}</td><td>${handling(b,x.pod,x.fpd)}</td><td class="num">${n0(x.teu)}<br><small class="muted">${eqLabel(x)}</small></td><td class="num wt">${n0(x.mt)}</td><td class="num rft">${x.rf?`${x.rf} <small>(${x.rfTeu} TEU)</small>`:'<span class="muted">—</span>'}</td><td>${spChips(x)||'<span class="muted">—</span>'}</td><td>${closed?'':`<button type="button" class="ghost" data-del="${x.id}" aria-label="Remove booking ${esc(x.ref)}">Remove</button>`}</td></tr>`).join('')
+      }</tbody></table></div>`:'<p class="empty">No bookings yet. Add the first one above.</p>'}
+      ${myRequests(b,p)}
+    </section>
+
+    <section class="panel third" data-nav="Balance you can use"><div class="ph"><div><h2>Balance you can use</h2><p>Released by ports loading before you or at your call.</p></div></div>
+      ${sources.length? sources.map(u=>{const av=poolFrom(b,u); return `<div class="pool-row"><div class="what"><b>${n0(av.teu)} TEU · ${n0(av.mt)} MT</b> from ${nm(u)}<br><span class="muted" style="font-size:.8rem">Released at cut-off ${cutoff(E(lci(b,u)))}</span></div>
+        <div class="form"><div class="field"><label for="pl-teu-${u}">TEU</label><input id="pl-teu-${u}" type="number" min="0" value="${Math.min(10,av.teu)}"></div>
+        <div class="field"><label for="pl-mt-${u}">MT</label><input id="pl-mt-${u}" class="mt" type="number" min="0" value="${Math.min(10*BD(b).mtPerTeu,av.mt)}"></div>
+        <div class="field"><label for="pl-pod-${u}">For</label><select id="pl-pod-${u}">${podOpts}</select></div>
+        <button type="button" class="primary" data-take="${u}" ${closed?'disabled':''}>Take</button></div></div>`}).join('')
+      : '<p class="empty">Nothing released ahead of you yet. Unbooked balance at the ports below comes to the pool when they release it.</p>'}
+    </section>
+
+    <section class="panel" data-nav="Ports ahead of you"><div class="ph"><div><h2>Ports loading ahead of you</h2>
+      <p>Read-only. Unbooked balance at an open port is not yours yet. It moves to the pool when that port releases it or HQ releases it at cut-off.</p></div></div>
+      ${origins(b).some(visible) ? board(b,visible,{editable:false, actions:false}) : '<p class="empty">You are the first loading call on this bound.</p>'}
+    </section>
+    ${dischargePlan(b,myBk,'Your cargo by discharge port','Direct discharge versus transhipment for your bookings.')}
+    ${isPod(b,p)?dischargePlan(b,S.bookings.filter(x=>x.b===b),'Discharging at '+sn(p),'Cargo other ports have booked to your port on this bound.',p):''}
+    ${iaWeekPanel()}
+    ${pipelinePanel()}
+  </div>`;
+}
+
+function render(){
+  const vs=document.getElementById('voy'); vs.innerHTML=VOYAGES.map(c=>`<option value="${c.id}">${c.vessel} ${c.id}</option>`).join(''); vs.value=V;
+  const sel=document.getElementById('role'); sel.innerHTML=roleOptions(); sel.value=role;
+  Object.keys(BOUNDS).forEach(b=>document.getElementById('bnd-'+b).setAttribute('aria-pressed',String(b===B)));
+  document.getElementById('app').innerHTML = voyageHead() + routeStrip() + (role==='HQ'?hqView():agentView());
+  if(role==='HQ') naPods(); else bkFpd();
+  buildNav();
+  save();
+}
+
+function naPods(){
+  const el=document.getElementById('na-port'); if(!el) return;
+  const pod=document.getElementById('na-pod'), cur=pod.value;
+  pod.innerHTML=podsFor(B,el.value).map(d=>`<option value="${d}">${nm(d)}</option>`).join('');
+  if([...pod.options].some(o=>o.value===cur)) pod.value=cur;
+  naHint();
+}
+function naHint(){
+  const el=document.getElementById('na-port'); if(!el) return;
+  const p=el.value, h=document.getElementById('na-hint'), fi=feedInfo(B,p);
+  h.className='hint';
+  h.textContent = fi
+    ? `${nm(p)} has no ${BD(B).label.toLowerCase()} call. It loads via ${sn(fi.hub)} ${fi.svc?`on the ${fi.svc} service`:`by ${fi.land.toLowerCase()}`}, so this allocation loads at ${sn(fi.hub)} and is grouped under it.`
+    : `${nm(p)} has a vessel call. Ports loading via ${sn(p)} are grouped under it. Only discharge ports later in the rotation are offered.`;
+}
+function bkFpd(){
+  const pod=document.getElementById('bk-pod'); if(!pod) return;
+  const f=document.getElementById('bk-fpd'), cur=f.value, os=BD(B).onward[pod.value]||[];
+  f.innerHTML = `<option value="${pod.value}">${nm(pod.value)} (direct)</option>${os.length?`<optgroup label="Transhipment at ${sn(pod.value)}">${os.map(x=>`<option value="${x.port}">${nm(x.port)} · ${x.svc||x.land}</option>`).join('')}</optgroup>`:''}`;
+  if([...f.options].some(o=>o.value===cur)) f.value=cur;
+  bkHint();
+}
+function bkHint(){
+  const p=role, d=document.getElementById('bk-pod').value, f=document.getElementById('bk-fpd').value, h=document.getElementById('bk-hint');
+  const teu=parseInt(document.getElementById('bk-teu').value,10)||0, mt=parseFloat(document.getElementById('bk-mt').value)||0, rf=parseInt(document.getElementById('bk-rf').value,10)||0;
+  const cust=document.getElementById('bk-cust')?.value||'';
+  const left=custLeft(B,p,d,cust);
+  const o=onwardOf(B,d,f), cn=o&&o.svc?connInfo(B,d,o,'out'):null;
+  const route = d===f ? `Direct discharge at ${nm(d)}.` : `Discharge at ${nm(d)}, then ${o?.svc?`${o.svc} service`:(o?.land||'').toLowerCase()} to ${nm(f)}.`;
+  const per = teu? mt/teu : 0, heavy = per>BD(B).mtPerTeu*1.3;
+  const a=rfA(B,p), rfLeft = a!==undefined ? a-rfUsed(B,p) : rfRoom(B,p,d);
+  h.className='hint '+(heavy?'heavy':d===f?'ok':'ts');
+  const ol=onwardLeft(B,p,d,f);
+  if(ol && (ol.left.teu<=0||ol.left.mt<=0)) h.className='hint ask';
+  h.textContent = `${route}${cn&&cn.date?` ${o.svc} sails ${fmt(cn.date)}: ${cn.txt.toLowerCase()}.`:''}${ol?` Intra-Asia limit: ${ol.why}; ${leftTxt(ol.left)} left.`:''} ${n0(Math.max(0,left.teu))} TEU and ${n0(Math.max(0,left.mt))} MT left to ${sn(d)}${allowance(B,p)?`, including a ${pct(allowance(B,p))} no-show allowance`:''}. ${Math.max(0,rfLeft)} reefer plugs available${a!==undefined?' in your RF BSA':' from the vessel'}.${teu?` This booking averages ${per.toFixed(1)} MT per TEU${heavy?', heavier than usual for this bound':''}.`:''}${rf?` ${rf} reefer unit${rf>1?'s':''} will take ${rf} plug${rf>1?'s':''}.`:''}${(()=>{
+    const dg=parseInt(document.getElementById('bk-dg')?.value,10)||0, c=parseInt(document.getElementById('bk-dgc')?.value,10), oog=parseInt(document.getElementById('bk-oog')?.value,10)||0;
+    if(!dg&&!oog) return ''; const sr=spRoom(B,p,d), ban=dg?dgBanned(B,p,d,c):[];
+    if(ban.length){ h.className='hint ask'; return ` Class ${c} DG is not accepted at ${ban.map(sn).join(' and ')}.`; }
+    return `${dg?` Vessel DG room ${Math.max(0,sr.dg)} units.`:''}${oog?` Vessel OOG room ${Math.max(0,sr.oog)} units.`:''}`; })()}`;
+}
+
+/* ================= Actions ================= */
+let tt; function toast(m,err){ const t=document.getElementById('toast'); t.textContent=m; t.className='on'+(err?' err':''); clearTimeout(tt); tt=setTimeout(()=>t.className=err?'err':'',3400); }
+const legOver = () => legs().some(l=>DIMS.some(d=>l.alloc[d.k]>VESSEL.cap[d.k]) || l.rf.booked+l.rf.held>VESSEL.plugs);
+
+/* Additional loading decisions. Each one leaves a notice for the requesting agent. */
+function notify(r,kind,extra,reason){
+  const d=new Date();
+  S.notices.push({id:uid(),b:r.b,port:r.port,kind,ref:r.ref,pod:r.pod,fpd:r.fpd,teu:r.teu,mt:r.mt,extra:extra||null,reason:reason||'',read:false,
+    at:fmt(TODAY)+' '+d.toTimeString().slice(0,5)});
+}
+function approveReq(r){                                         // returns an error message, or '' when approved
+  const b=r.b, need=vpos(vsub(vadd(used(b,r.port,r.pod),pick(r)),eff(b,r.port,r.pod))), room=legRoom(b,r.port,r.pod);
+  const tight=DIMS.find(x=>need[x.k]>room[x.k]);
+  if(tight) return `${r.ref}: vessel only has ${n0(Math.max(0,room[tight.k]))} ${tight.u} spare between ${sn(loadCall(b,r.port))} and ${sn(r.pod)}.`;
+  if(r.rf){ const a=rfA(b,r.port), avail=a!==undefined?a-rfUsed(b,r.port):rfRoom(b,r.port,r.pod);
+    if(r.rf>avail) return `${r.ref}: not enough reefer plugs for ${nm(r.port)}. Raise its reefer BSA first.`; }
+  S.extra=S.extra||[]; S.extra.push({id:uid(),b,port:r.port,pod:r.pod,...need,ref:r.ref});   // revises allocation, original stays untouched
+  S.bookings.push({id:uid(),b,ref:r.ref,port:r.port,pod:r.pod,fpd:r.fpd,teu:r.teu,mt:r.mt,rf:r.rf||0,rfTeu:r.rfTeu||0});
+  r.status='approved'; notify(r,'approved',need);
+  addLog(`HQ approved additional loading for ${nm(r.port)}: ${n0(r.teu)} TEU / ${n0(r.mt)} MT to ${sn(r.pod)} (${r.ref}). Revised allocation +${n0(need.teu)} TEU / ${n0(need.mt)} MT.`);
+  return '';
+}
+function rejectReq(r){ r.status='rejected'; notify(r,'rejected'); addLog(`HQ rejected additional loading for ${nm(r.port)} (${r.ref}).`); }
+
+// Approve amount A (raise of revised allocation) for one POL→POD. Requests there are booked in order up to the new limit.
+function decidePod(b,p,d,A,reason){
+  const list=reqs(b,p,'pending').filter(r=>r.pod===d);
+  if(vany(A)){
+    const room=legRoom(b,p,d), tight=DIMS.find(x=>A[x.k]>room[x.k]);
+    if(tight) return {err:`Vessel only has ${n0(Math.max(0,room[tight.k]))} ${tight.u} spare between ${sn(loadCall(b,p))} and ${sn(d)}.`};
+    S.extra.push({id:uid(),b,port:p,pod:d,...A,ref:list.map(r=>r.ref).join(', ')});
+  }
+  let left=vpos(bookLeft(b,p,d)), res={full:0,part:0,rej:0}, first=true;
+  list.forEach(r=>{
+    const per=r.teu?r.mt/r.teu:0;
+    let t=Math.min(r.teu, left.teu, per?Math.floor(left.mt/per):r.teu);
+    let rf=r.rf?Math.min(r.rf,Math.round(r.rf*t/Math.max(1,r.teu))):0;
+    if(rf){ const a=rfA(b,p), avail=a!==undefined?a-rfUsed(b,p):rfRoom(b,p,d); if(rf>avail){ rf=Math.max(0,avail); } }
+    const bk={teu:t, mt:t>=r.teu?r.mt:Math.round(t*per)};
+    if(t>0){ S.bookings.push({id:uid(),b,ref:t>=r.teu?r.ref:r.ref+'-P',port:p,pod:d,fpd:r.fpd,...bk,
+      ...(t>=r.teu?{e20:r.e20,e40:r.e40,ehc:r.ehc,dg:r.dg||0,dgc:r.dgc,oog:r.oog||0,lost:r.lost||0}:{dg:0,oog:0,lost:0}),rf,rfTeu:rf?Math.min(r.rfTeu||rf,Math.max(rf,Math.round((r.rfTeu||0)*t/r.teu))):0}); left=vpos(vsub(left,bk)); }
+    r.booked=bk; r.status = t>=r.teu?'approved':t>0?'partial':'rejected';
+    notify(r, r.status, {granted:first?A:null, booked:bk}, reason); first=false;
+    res[t>=r.teu?'full':t>0?'part':'rej']++;
+  });
+  addLog(vany(A)
+    ? `HQ approved +${n0(A.teu)} TEU / ${n0(A.mt)} MT for ${nm(p)} → ${sn(d)}: ${res.full} in full, ${res.part} in part, ${res.rej} not loaded.`
+    : `HQ rejected additional loading for ${nm(p)} → ${sn(d)} (${list.length} request${list.length===1?'':'s'}).` + (reason?` Reason: ${reason}.`:''));
+  return {res};
+}
+// Release one POD's unused balance to the pool. The port stays open for its other PODs.
+function releasePod(b,p,d,amt,reason){
+  const max=vpos(vsub(eff(b,p,d),used(b,p,d)));
+  const un=amt?Object.fromEntries(DIMS.map(x=>[x.k,Math.min(max[x.k],Math.max(0,amt[x.k]||0))])):max;
+  if(!vany(un)){ armed=null; return toast('Enter how much to release',true); }
+  S.released[K(b,p,d)]=vadd(rel(b,p,d),un); armed=null;
+  addLog(`${nm(p)} released ${n0(un.teu)} TEU / ${n0(un.mt)} MT to ${sn(d)} into the balance pool${role==='HQ'?' (by HQ)':''}${reason?`. Reason: ${reason}`:''}.`);
+  toast(`Released ${n0(un.teu)} TEU / ${n0(un.mt)} MT to ${sn(d)} from ${nm(p)}`);
+}
+
+// Agent: decisions from HQ. HQ: requests waiting. Shown at the top of the desk until acknowledged.
+function alerts(){
+  const bl = S.sched.blank ? `<section class="panel notice badn" role="status"><div class="eyebrow">Blank sailing</div>
+    <p class="note" style="color:var(--ink)"><b>${curVoy().vessel} ${V} is blanked.</b> Its allocation and bookings were moved to the next vessel. No new bookings can be made here.</p></section>` : '';
+  return bl + alertsCore();
+}
+function alertsCore(){
+  if(role==='HQ'){
+    const pend=S.requests.filter(r=>r.status==='pending'); if(!pend.length) return '';
+    const by=Object.keys(BOUNDS).map(b=>{ const l=pend.filter(r=>r.b===b); return l.length?`${l.length} ${BD(b).label.toLowerCase()}`:''; }).filter(Boolean).join(', ');
+    const t=vsum(pend.map(pick));
+    return `<section class="panel notice" role="status"><div class="ph"><div><div class="eyebrow">Waiting for your approval · ${curVoy().vessel} ${V}</div>
+      <p class="note" style="color:var(--ink);margin-top:4px"><b>${pend.length} additional loading request${pend.length===1?'':'s'}</b> (${by}) for <b>${tot(t)}</b>. Ports: ${[...new Set(pend.map(r=>nm(r.port)))].join(', ')}.</p></div>
+      <div class="acts">${pend.some(r=>r.b===B)?`<button type="button" class="primary" data-go="requests">Review requests</button>`:`<span class="muted">Switch bound to review</span>`}</div></div></section>`;
+  }
+  const mine=S.notices.filter(n=>n.port===role && !n.read); if(!mine.length) return '';
+  return `<section class="panel notice ${mine.some(n=>n.kind==='rejected')?'badn':'okn'}" role="status"><div class="ph"><div><div class="eyebrow">Message from HQ Trade · ${curVoy().vessel} ${V}</div>
+    <ul>${mine.map(n=>{ const g=n.extra?.granted!==undefined?n.extra.granted:n.extra, bk=n.extra?.booked||{teu:n.teu,mt:n.mt};
+      const raise=g&&vany(g)?` Revised allocation to ${sn(n.pod)} +${n0(g.teu)} TEU / ${n0(g.mt)} MT; original unchanged.`:'';
+      return `<li>${n.kind==='approved'
+      ? `<span class="chip okc">Approved</span> <b>${esc(n.ref)}</b> ${n0(n.teu)} TEU / ${n0(n.mt)} MT to ${sn(n.pod)}${n.fpd!==n.pod?` → ${nm(n.fpd)}`:''} (${BD(n.b).label.toLowerCase()}) is booked.${raise}`
+      : n.kind==='partial'
+      ? `<span class="chip warnc">Part approved</span> <b>${esc(n.ref)}</b> ${n0(bk.teu)} of ${n0(n.teu)} TEU (${n0(bk.mt)} of ${n0(n.mt)} MT) to ${sn(n.pod)} is booked. The other ${n0(n.teu-bk.teu)} TEU will not load on this vessel; roll it to a later one.${raise}`
+      : `<span class="chip over">Rejected</span> <b>${esc(n.ref)}</b> ${n0(n.teu)} TEU / ${n0(n.mt)} MT to ${sn(n.pod)} (${BD(n.b).label.toLowerCase()}) will not load on this vessel. Roll it to a later vessel.`}${n.reason?` <span class="muted">Reason: ${esc(n.reason)}.</span>`:''} <span class="muted">${esc(n.at)}</span></li>`; }).join('')}</ul></div>
+    <button type="button" class="primary" data-ack="${role}">Got it</button></div></section>`;
+}
+
+function release(p,reason){
+  let tot=Z();
+  BOUNDS[B].pods.forEach(d=>{ const un=vpos(vsub(eff(B,p,d),used(B,p,d))); if(vany(un)){ S.released[K(B,p,d)]=vadd(rel(B,p,d),un); tot=vadd(tot,un);} });
+  let plugs=0; const a=rfA(B,p); if(a!==undefined){ plugs=Math.max(0,a-rfUsed(B,p)); S.rfAlloc[K(B,p)]=rfUsed(B,p); }
+  S.closed[K(B,p)]=true; armed=null;
+  addLog(`${nm(p)} released ${n0(tot.teu)} TEU / ${n0(tot.mt)} MT to the balance pool${plugs?` and ${plugs} reefer plugs to the vessel`:''}${role==='HQ'?' (by HQ)':''}${reason?`. Reason: ${reason}`:''}.`);
+  toast(`Released ${n0(tot.teu)} TEU / ${n0(tot.mt)} MT${plugs?` and ${plugs} plugs`:''} from ${nm(p)}`);
+}
+
+/* ================= Reason codes ================= */
+const REASONS = {
+  release:['Weak demand','Customer cancellation','Cut-off rule','Equipment shortage','Schedule change','Other'],
+  approve:['Key account','High yield','Space available on legs','Other'],
+  reject:['Low yield','Vessel full on a leg','Special cargo limits','Allocation discipline','Other']
+};
+const reasonSel = (id,kind) => `<select id="${id}" class="rsn" aria-label="Reason">${REASONS[kind].map(r=>`<option>${r}</option>`).join('')}</select>`;
+const decisionReasons = id => `<select id="${id}" class="rsn" aria-label="Reason"><optgroup label="If approving">${REASONS.approve.map(r=>`<option>${r}</option>`).join('')}</optgroup><optgroup label="If rejecting">${REASONS.reject.map(r=>`<option>${r}</option>`).join('')}</optgroup></select>`;
+const rsnOf = id => document.getElementById(id)?.value || '';
+
+/* ================= Release rules ================= */
+// Staged release before cut-off. A stage fires once per port when today reaches (cut-off − days) and the port is under the threshold.
+function rulesDue(){
+  const R=ALL.rules; if(!R.on) return [];
+  const out=[];
+  origins(B).filter(p=>loadsIn(B,p)&&!closedP(B,p)).forEach(p=>{
+    const co=addDays(E(lci(B,p)),-1), e=effP(B,p), u=usedP(B,p), util=e.teu?u.teu/e.teu:1, un=vpos(vsub(e,u));
+    R.stages.forEach((s,i)=>{
+      if(S.ruleRuns[K(B,p,i)] || TODAY<addDays(co,-s.days) || util>=s.under || !vany(un)) return;
+      out.push({p,i,s,util,un,amt:Object.fromEntries(DIMS.map(x=>[x.k,Math.floor(un[x.k]*s.pct)]))});
+    });
+  });
+  return out;
+}
+function applyRules(){
+  const due=rulesDue(); let n=0;
+  due.forEach(d=>{ if(S.ruleRuns[K(B,d.p,d.i)]) return;
+    if(d.s.pct>=1){ release(d.p,'Cut-off rule'); R_markAll(d.p); }
+    else BD(B).pods.forEach(pod=>{ const un=vpos(vsub(eff(B,d.p,pod),used(B,d.p,pod))); const a=Object.fromEntries(DIMS.map(x=>[x.k,Math.floor(un[x.k]*d.s.pct)])); if(vany(a)) releasePod(B,d.p,pod,a,'Cut-off rule',true); });
+    S.ruleRuns[K(B,d.p,d.i)]=true; n++; });
+  return n;
+}
+function R_markAll(p){ ALL.rules.stages.forEach((_,i)=>S.ruleRuns[K(B,p,i)]=true); }
+function rulesPanel(){
+  const R=ALL.rules, due=rulesDue();
+  return `<section class="panel" data-nav="Release rules"><div class="ph"><div><h2>Release rules</h2>
+    <p>Unused balance is released in stages before each port's cut-off, so later ports can use it in time. A stage applies once per port, only if the port is below the threshold. The last stage at cut-off releases everything left and closes the port.</p></div>
+    <label class="chk" for="rl-on"><input type="checkbox" id="rl-on" ${R.on?'checked':''}> Rules on</label></div>
+    <div class="tbl-wrap"><table><thead><tr><th>Stage</th><th class="num">Days before cut-off</th><th class="num">If booked below</th><th class="num">Release</th></tr></thead><tbody>${
+      R.stages.map((s,i)=>`<tr><td><span class="pname">Stage ${i+1}${s.pct>=1?'<small>Closes the port</small>':''}</span></td>
+        <td class="num"><input type="number" min="0" max="14" id="rs-days-${i}" data-stage="${i}|days" value="${s.days}"></td>
+        <td class="num"><input type="number" min="0" max="100" id="rs-under-${i}" data-stage="${i}|under" value="${Math.round(s.under*100)}"> %</td>
+        <td class="num"><input type="number" min="0" max="100" id="rs-pct-${i}" data-stage="${i}|pct" value="${Math.round(s.pct*100)}"> % of unused</td></tr>`).join('')
+    }</tbody></table></div>
+    <h3>Due now · ${fmt(TODAY)}</h3>
+    ${due.length?`<div class="tbl-wrap"><table><thead><tr><th>Port of load</th><th class="num">Cut-off</th><th class="num">Booked</th><th>Stage</th><th class="num">Will release</th></tr></thead><tbody>${
+      due.map(d=>`<tr><td><span class="pname">${nm(d.p)}</span></td><td class="num">${cutoff(E(lci(B,d.p)))}</td><td class="num">${pct(d.util)}</td><td>Stage ${d.i+1}${d.s.pct>=1?' · closes':''}</td><td class="num">${d.s.pct>=1?tot(d.un):tot(d.amt)}</td></tr>`).join('')
+    }</tbody></table></div><div class="acts"><button type="button" class="primary" data-applyrules>Apply ${due.length} release${due.length===1?'':'s'}</button></div>`:'<p class="empty">Nothing due on this bound today.</p>'}
+  </section>`;
+}
+
+/* ================= Schedule changes ================= */
+const sch = () => S.sched;
+const delayTo = i => Object.entries(S.sched.delay).reduce((s,[j,d])=>s+(+j<=i?d:0),0);
+const omitted = i => !!S.sched.omit[i];
+const nextVoyId = () => (VOYAGES[voyIdx()+1]||{}).id;
+// Move allocation, bookings, waiting requests and forecasts that touch call i (or everything) to the next vessel.
+function moveToNext(match){
+  const nid=nextVoyId(); if(!nid) return {err:'There is no later vessel in this plan to move to.'};
+  const N=ALL.voyages[nid]; let t=Z(), nb=0;
+  S.bookings=S.bookings.filter(x=>{ if(!match(x.b,x.port,x.pod)) return true; N.bookings.push({...x,id:uid(),ref:x.ref+'-R'}); t=vadd(t,pick(x)); nb++; return false; });
+  S.alloc=S.alloc.filter(a=>{ if(!match(a.b,a.port,a.pod)) return true; const m=N.alloc.find(y=>y.b===a.b&&y.port===a.port&&y.pod===a.pod); if(m){ m.teu+=a.teu; m.mt+=a.mt; } else N.alloc.push({...a}); return false; });
+  S.requests.filter(r=>r.status==='pending'&&match(r.b,r.port,r.pod)).forEach(r=>{ r.status='rejected'; N.requests.push({...r,id:uid(),status:'pending'}); notify(r,'rejected',null,'Schedule change: moved to '+nid); });
+  Object.keys(S.forecast).forEach(k=>{ const [b,p,d]=k.split('|'); if(match(b,p,d)){ N.forecast[k]=S.forecast[k]; delete S.forecast[k]; } });
+  return {nb,t,to:nid};
+}
+const touches = i => (b,p,d) => lci(b,p)===i || ci(b,d)===i;
+function schedPanel(){
+  const nid=nextVoyId(), nv=nid?VOYAGES.find(v=>v.id===nid):null;
+  const rows=ROT.slice(0,-1).map((c,i)=>{
+    const aff=S.bookings.filter(x=>touches(i)(x.b,x.port,x.pod)), t=vsum(aff.map(pick)), om=omitted(i), moved=S.sched.moved[i];
+    return `<tr class="${om?'self':''}"><td><span class="pname">${nm(c.port)} <code class="muted">${c.port}</code><small>${om?'Omitted on this voyage':'In rotation'}</small></span></td>
+      <td class="num">${fmt(E(i))}${delayTo(i)?`<br><small class="fo">+${delayTo(i)} day${delayTo(i)>1?'s':''}</small>`:''}</td>
+      <td class="num"><input type="number" min="0" max="10" id="dl-${i}" value="${S.sched.delay[i]||0}" aria-label="Delay at ${nm(c.port)} in days"> <button type="button" class="ghost sm" data-delay="${i}">Set</button></td>
+      <td class="num">${aff.length?`${n0(t.teu)} TEU<br><small class="muted">${aff.length} bookings</small>`:'<span class="muted">—</span>'}</td>
+      <td><div class="acts">${moved?'<span class="chip closed">Moved to next vessel</span>':om
+        ? `${nid?`<button type="button" class="primary sm" data-movecall="${i}">Move to ${nv.vessel} ${nid}</button>`:'<span class="muted">No later vessel</span>'}<button type="button" class="ghost sm" data-unomit="${i}">Reinstate</button>`
+        : `<button type="button" class="ghost sm relb" data-omit="${i}">Omit call</button>`}</div></td></tr>`; }).join('');
+  return `<section class="panel" data-nav="Schedule changes"><div class="ph"><div><h2>Schedule changes · ${curVoy().vessel} ${V}</h2>
+    <p>Delay a call to push its ETA, cut-off and forecast lock (and every later call) back. Omit a call, then move the allocation and bookings that load or discharge there to the next vessel in one go. Agents cannot book an omitted call.</p></div>
+    <div class="acts">${S.sched.blank?'<span class="chip over">Sailing blanked</span>':armed==='blank'
+      ? `<button type="button" class="danger armed" data-blank>Blank and move everything to ${nv?nv.vessel+' '+nid:'—'}</button><button type="button" class="ghost" data-disarm>Cancel</button>`
+      : `<button type="button" class="danger" data-arm="blank" ${nid?'':'disabled'}>Blank this sailing</button>`}</div></div>
+    <div class="tbl-wrap"><table><thead><tr><th>Call</th><th class="num">ETA</th><th class="num">Delay (days)</th><th class="num">Cargo here</th><th></th></tr></thead><tbody>${rows}</tbody></table></div>
+  </section>`;
+}
+
+/* ================= Transhipment connection risk ================= */
+// Weekly connecting-service days at each hub (0 = Sunday). Sample schedule: replace with the real long-term schedule.
+const CONN_SCHED = {
+  'SGSIN|JKS':{arr:1,dep:3}, 'SGSIN|VCS':{arr:2,dep:4}, 'SGSIN|ITS':{arr:3,dep:5},
+  'MYWSP|SPE':{arr:4,dep:6}, 'MYWSP|WS2':{arr:5,dep:0}, 'CNNGB|NPE':{arr:6,dep:1}, 'CNSHA|NPE':{arr:0,dep:2}, 'INMUN|WS6':{arr:2,dep:3}
+};
+const dow = s => new Date(s+'T00:00:00').getDay();
+// Inbound: days between the feeder's last arrival and our vessel at the hub. Outbound: days from our discharge to the next sailing.
+function connInfo(b,hub,f,dir){
+  if(!f.svc) return {cls:'okc',txt:'Daily '+f.land.toLowerCase(),days:null};
+  const sc=CONN_SCHED[hub+'|'+f.svc]; if(!sc) return {cls:'closed',txt:'No schedule',days:null};
+  const eta=E(ci(b,hub));
+  if(dir==='in'){ const g=(dow(eta)-sc.arr+7)%7;
+    return {days:g, date:addDays(eta,-g), cls:g>=2?'okc':g===1?'warnc':'over', txt:g>=2?`${g} days to connect`:g===1?'Tight · 1 day':'Same day · at risk'}; }
+  const w=(sc.dep-dow(eta)+7)%7;
+  return {days:w, date:addDays(eta,w), cls:w===0?'over':w===1?'warnc':w>=6?'warnc':'okc', txt:w===0?'Same day · at risk':w===1?'Tight · 1 day':w>=6?`Long wait · ${w} days`:`${w} days wait`};
+}
+const atRisk = c => c.cls==='over'||(c.cls==='warnc'&&c.days!==null);
+
+/* ================= Contract allocation ================= */
+const contractsOf = (b,p) => S.contracts.filter(c=>c.b===b&&c.port===p);
+const ctUsed = c => vsum(S.bookings.filter(x=>x.b===c.b&&x.port===c.port&&x.customer===c.customer).map(pick));
+const ctUnfilled = (b,p,except) => vsum(contractsOf(b,p).filter(c=>c.customer!==except).map(c=>vpos(vsub(pick(c),ctUsed(c)))));
+// Spot cargo cannot use balance still reserved for contract customers.
+const custLeft = (b,p,d,cust) => vsub(bookLeft(b,p,d), ctUnfilled(b,p,cust||null));
+/* ================= Intra-Asia onward allocation ================= */
+// Cargo transhipped onto connecting services is limited per port of load and destination, and per service intake at the hub.
+const onCapOf = (b,p,f) => S.onCap[K(b,p,f)]||null;
+const onUsed = (b,p,f) => vsum(S.bookings.filter(x=>x.b===b&&x.port===p&&x.fpd===f&&x.pod!==f).map(pick));
+const svcCapOf = (b,hub,svc) => S.svcCap[K(b,hub,svc)]||null;
+const svcUsed = (b,hub,svc) => vsum(S.bookings.filter(x=>x.b===b&&x.pod===hub&&x.fpd!==hub&&(onwardOf(b,hub,x.fpd)||{}).svc===svc).map(pick));
+const capTxt = c => [c.teu!=null?`${n0(c.teu)} TEU`:'', c.mt!=null?`${n0(c.mt)} MT`:''].filter(Boolean).join(' / ');
+const leftTxt = l => [isFinite(l.teu)?`${n0(Math.max(0,l.teu))} TEU`:'', isFinite(l.mt)?`${n0(Math.max(0,l.mt))} MT`:''].filter(Boolean).join(' / ');
+// What an onward booking may still take, per TEU and MT: the tighter of the port limit and the service intake limit (null = no limit).
+function onwardLeft(b,p,d,f){
+  if(f===d) return null;
+  const left={teu:Infinity,mt:Infinity}, why=[];
+  const apply=(cap,u,label)=>{ let hit=false; DIMS.forEach(x=>{ if(cap[x.k]!=null){ const l=cap[x.k]-u[x.k]; if(l<left[x.k]){ left[x.k]=l; hit=true; } } }); if(hit) why.push(label); };
+  const c=onCapOf(b,p,f); if(c) apply(c,onUsed(b,p,f),`ex ${nm(p)} into ${nm(f)} is limited to ${capTxt(c)}`);
+  const o=onwardOf(b,d,f), sc=o&&o.svc?svcCapOf(b,d,o.svc):null;
+  if(sc) apply(sc,svcUsed(b,d,o.svc),`${o.svc} intake at ${sn(d)} is limited to ${capTxt(sc)}`);
+  return why.length?{left,why:why.join('; ')}:null;
+}
+
+/* ---- First-leg delay → intra-Asia connections, week by week ----
+   Each of our voyages discharges at the hub, waits at least MIN_CONN days, then takes the next sailing of the connecting service.
+   A delayed first leg slips to a later sailing: the planned week goes unfilled and the later week gets two vessels' cargo (bunching). */
+const MIN_CONN = 1;
+const voyDelayTo = (s,i) => Object.entries((s.sched||{}).delay||{}).reduce((a,[j,d])=>a+(+j<=i?d:0),0);
+const nextDep = (date,dep) => addDays(date,(dep-dow(date)+7)%7);
+let iaSel='';
+function iaWeeks(b,hub,svc){
+  const sc=CONN_SCHED[hub+'|'+svc]; if(!sc) return null;
+  const dests=(BD(b).onward[hub]||[]).filter(f=>f.svc===svc).map(f=>f.port), i=ci(b,hub);
+  const vs=VOYAGES.map(v=>{ const s=ALL.voyages[v.id], base=addDays(ROT[i].eta,v.wk*7), dl=voyDelayTo(s,i), eta=addDays(base,dl);
+    const off=s.sched.blank||s.sched.omit[i];
+    return {v, s, eta, dl, off, plan:nextDep(addDays(base,MIN_CONN),sc.dep), sail:off?null:nextDep(addDays(eta,MIN_CONN),sc.dep),
+      bks:off?[]:s.bookings.filter(x=>x.b===b&&x.pod===hub&&dests.includes(x.fpd))}; });
+  const dates=[...new Set(vs.flatMap(x=>[x.plan,x.sail]).filter(Boolean))].sort();
+  return {sc,dests,vs,dates};
+}
+function iaWeekPanel(){
+  const b=B, opts=[]; BD(b).pods.forEach(pod=>[...new Set((BD(b).onward[pod]||[]).filter(f=>f.svc&&CONN_SCHED[pod+'|'+f.svc]).map(f=>f.svc))].forEach(svc=>opts.push(pod+'|'+svc)));
+  if(!opts.length) return '';
+  if(!opts.includes(iaSel)) iaSel=opts.find(o=>o.endsWith('|JKS'))||opts[0];
+  const [hub,svc]=iaSel.split('|'), W=iaWeeks(b,hub,svc), cap=svcCapOf(b,hub,svc);
+  const polsIn=[...new Set(W.vs.flatMap(x=>x.bks.map(k=>k.port)))];
+  const polCap=p=>{ const cs=W.dests.map(f=>onCapOf(b,p,f)).filter(Boolean); if(!cs.length) return null; return {teu:cs.some(c=>c.teu!=null)?cs.reduce((a,c)=>a+(c.teu||0),0):null, mt:cs.some(c=>c.mt!=null)?cs.reduce((a,c)=>a+(c.mt||0),0):null}; };
+  const over=(v,c)=>c&&DIMS.some(x=>c[x.k]!=null&&v[x.k]>c[x.k]);
+  const cell=(v,c,planned,feeders)=>{ const any=vany(v);
+    const cls=over(v,c)?'hm3':!any&&planned?'hm2':any?'hm1':'hmn';
+    const tag=over(v,c)?`<span class="chip over">Bunching</span>`:!any&&planned?`<span class="chip warnc">Unfilled</span>`:'';
+    return `<td class="hm ${cls}">${any?`<b>${n0(v.teu)} TEU</b><small>${n0(v.mt)} MT</small>`:'<b>—</b>'}${feeders?`<small class="muted">${feeders}</small>`:''}${tag}</td>`; };
+  const totRow=W.dates.map(d=>{ const f=W.vs.filter(x=>x.sail===d), v=vsum(f.flatMap(x=>x.bks).map(pick)), planned=W.vs.some(x=>x.plan===d);
+    return cell(v,cap,planned,f.map(x=>x.v.id).join(' + ')); }).join('');
+  const polRows=polsIn.map(p=>{ const c=polCap(p);
+    return `<tr><td><span class="pname">${nm(p)}<small>${c?`limit ${capTxt(c)} per vessel`:'no limit set'}</small></span></td>${W.dates.map(d=>{ const f=W.vs.filter(x=>x.sail===d), v=vsum(f.flatMap(x=>x.bks.filter(k=>k.port===p)).map(pick)), planned=W.vs.some(x=>x.plan===d&&!x.off&&ALL.voyages[x.v.id].bookings.some(k=>k.b===b&&k.port===p&&k.pod===hub&&W.dests.includes(k.fpd)));
+      return cell(v,c,planned,''); }).join('')}</tr>`; }).join('');
+  const legRows=W.vs.map(x=>`<tr><td><span class="pname">${x.v.vessel}<small>${x.v.id}${b==='WB'?'W':'E'}</small></span></td>
+    <td class="num">${fmt(x.eta)}${x.dl?`<br><small class="fo">+${x.dl} day${x.dl>1?'s':''} late</small>`:''}</td>
+    <td class="num">${fmt(x.plan)}</td><td class="num">${x.off?'—':fmt(x.sail)}</td>
+    <td class="num">${tot(vsum(x.bks.map(pick)))}</td>
+    <td>${x.off?'<span class="chip closed">Blanked / omitted</span>':x.sail===x.plan?'<span class="chip okc">On plan</span>':`<span class="chip over">Slips ${Math.round((new Date(x.sail)-new Date(x.plan))/864e5/7)} week</span>`}</td></tr>`).join('');
+  return `<section class="panel" data-nav="First-leg delays"><div class="ph"><div><h2>First-leg delays and intra-Asia connections</h2>
+    <p>Which ${svc} sailing at ${sn(hub)} each of our vessels actually connects to, allowing ${MIN_CONN} day at the hub. A late first leg leaves its planned sailing <b>unfilled</b> and doubles up the next one (<b>bunching</b>), so check both the service total and each port of load's own limit.</p></div>
+    <div class="field"><label for="ia-sel">Service</label><select id="ia-sel">${opts.map(o=>{ const [h,s]=o.split('|'); return `<option value="${o}" ${o===iaSel?'selected':''}>${s} at ${sn(h)}</option>`; }).join('')}</select></div></div>
+    <h3>First leg</h3>
+    <div class="tbl-wrap"><table><thead><tr><th>Our vessel</th><th class="num">ETA ${sn(hub)}</th><th class="num">Planned ${svc} sailing</th><th class="num">Actual ${svc} sailing</th><th class="num">Onward cargo</th><th>Status</th></tr></thead><tbody>${legRows}</tbody></table></div>
+    <h3>${svc} sailings from ${sn(hub)} <small class="muted">cargo arriving from our vessels</small></h3>
+    <div class="tbl-wrap scrolly"><table class="heat iaw"><thead><tr><th>Port of load</th>${W.dates.map(d=>`<th class="num">${fmt(d)}<small>${svc} sails</small></th>`).join('')}</tr></thead><tbody>
+      <tr class="tot"><td><span class="pname">All ports<small>${cap?`intake limit ${capTxt(cap)} per sailing`:'no intake limit set'}</small></span></td>${totRow}</tr>
+      ${polRows||`<tr><td colspan="${W.dates.length+1}" class="empty">No onward cargo booked for ${svc}.</td></tr>`}
+    </tbody></table></div>
+    <p class="note">Port limits are the per-vessel limits from the matrix above, added up across this service's destinations. Delays are set in Schedule changes for each voyage.</p>
+  </section>`;
+}
+function iaPanel(){
+  const b=B, dests=BD(b).pods.flatMap(pod=>(BD(b).onward[pod]||[]).filter(f=>f.svc).map(f=>({pod,f})));
+  if(!dests.length) return '';
+  const ports=[]; BD(b).pols.forEach(pol=>groupPorts(b,pol).forEach(p=>ports.push(p)));
+  const band=(u,c)=>{ if(!c) return ''; const r=Math.max(...DIMS.filter(x=>c[x.k]!=null&&c[x.k]>0).map(x=>u[x.k]/c[x.k]),0); return r>1?'hm3':r>=0.9?'hm2':'hm1'; };
+  const capIn=(id,key,c,label)=>DIMS.map(x=>`<input type="number" min="0" class="${x.k}" id="${id}-${x.k}" data-${key}="${label}|${x.k}" value="${c&&c[x.k]!=null?c[x.k]:''}" placeholder="${x.u}" aria-label="${x.u} limit">`).join('');
+  const svcs=[]; dests.forEach(({pod,f})=>{ if(!svcs.some(s=>s.pod===pod&&s.svc===f.svc)) svcs.push({pod,svc:f.svc,to:dests.filter(x=>x.pod===pod&&x.f.svc===f.svc).map(x=>x.f.port)}); });
+  const svcRows=svcs.map(s=>{ const u=svcUsed(b,s.pod,s.svc), c=svcCapOf(b,s.pod,s.svc), cn=connInfo(b,s.pod,{svc:s.svc},'out');
+    return `<tr><td><span class="pname"><span class="svc">${s.svc}</span> at ${sn(s.pod)}<small>to ${s.to.map(x=>x.slice(2)).join(', ')}</small></span></td>
+      <td class="num">${tot(u)}</td>
+      <td class="num"><span class="pair">${capIn(`sc-${b}-${s.pod}-${s.svc}`,'svccap',c,`${b}|${s.pod}|${s.svc}`)}</span></td>
+      <td class="util">${c?DIMS.filter(x=>c[x.k]!=null).map(x=>`<span class="u"><span>${x.u}</span>${meter(u[x.k],c[x.k],x.k==='mt'?'mtm':'')}<span class="num">${c[x.k]?pct(u[x.k]/c[x.k]):'—'}</span></span>`).join(''):'<span class="muted">No limit</span>'}</td>
+      <td><span class="chip ${cn.cls}">${cn.date?`Sails ${fmt(cn.date)} · `:''}${cn.txt}</span></td></tr>`; }).join('');
+  const rows=ports.map(p=>{ const fi=feedInfo(b,p);
+    const cells=dests.map(({pod,f})=>{ if(!podOK(b,p,pod)) return '<td class="na">·</td>';
+      const u=onUsed(b,p,f.port), c=onCapOf(b,p,f.port);
+      return `<td class="hm ${band(u,c)}"><b>${n0(u.teu)} TEU</b><small>${n0(u.mt)} MT</small><span class="pair">${capIn(`oc-${b}-${p}-${f.port}`,'oncap',c,`${b}|${p}|${f.port}`)}</span></td>`; }).join('');
+    return `<tr class="${fi?'feeder':''}"><td><span class="pname">${fi?'↳ ':''}${nm(p)} <code class="muted">${p}</code></span></td>${cells}</tr>`; }).join('');
+  return `<section class="panel" data-nav="Intra-Asia onward"><div class="ph"><div><h2>Intra-Asia onward allocation · ${BD(b).label}</h2>
+    <p>Cargo transhipped at a hub onto an intra-Asia service is limited twice, in TEU and tonnage: per port of load and destination (for example ex Nhava Sheva max 5 TEU / 100 MT into Jakarta), and per service intake at the hub. Agents cannot book past either limit. Leave a box empty for no limit.</p></div></div>
+    <h3>Service intake at the hub</h3>
+    <div class="tbl-wrap"><table><thead><tr><th>Service</th><th class="num">Booked onward</th><th class="num">Intake limit</th><th>Use</th><th>Connection</th></tr></thead><tbody>${svcRows}</tbody></table></div>
+    <h3>By port of load and destination <small class="muted">booked · limit TEU and MT</small></h3>
+    <div class="tbl-wrap scrolly"><table class="heat ia"><thead><tr><th>Port of load</th>${dests.map(({pod,f})=>`<th class="num">${nm(f.port)}<small>via ${sn(pod)} · ${f.svc}</small></th>`).join('')}</tr></thead><tbody>${rows}</tbody></table></div>
+  </section>`;
+}
+
+function contractPanel(){
+  const b=B, list=S.contracts.filter(c=>c.b===b);
+  const opts=[]; BD(b).pols.forEach(pol=>groupPorts(b,pol).forEach(p=>opts.push(p)));
+  return `<section class="panel" data-nav="Contract allocation"><div class="ph"><div><h2>Contract allocation</h2>
+    <p>Part of a port's allocation reserved for key accounts and service contracts. Spot bookings cannot use the unfilled reserve, so contract cargo is protected until cut-off or until HQ removes the reserve.</p></div></div>
+    ${list.length?`<div class="tbl-wrap"><table><thead><tr><th>Port of load</th><th>Customer</th><th class="num">Reserved</th><th class="num">Booked</th><th>Fill</th><th></th></tr></thead><tbody>${
+      list.map(c=>{ const u=ctUsed(c); return `<tr><td><span class="pname">${nm(c.port)}</span></td><td><b>${esc(c.customer)}</b></td><td class="num">${tot(pick(c))}</td><td class="num">${tot(u)}</td>
+        <td class="util"><span class="u"><span>TEU</span>${meter(u.teu,c.teu)}<span class="num">${c.teu?pct(u.teu/c.teu):'—'}</span></span></td>
+        <td><button type="button" class="ghost sm" data-delct="${c.id}">Remove</button></td></tr>`; }).join('')
+    }</tbody></table></div>`:'<p class="empty">No contract reserves on this bound.</p>'}
+    <form class="form" id="f-ct">
+      <div class="field"><label for="ct-port">Port of load</label><select id="ct-port">${opts.map(p=>`<option value="${p}">${nm(p)}</option>`).join('')}</select></div>
+      <div class="field"><label for="ct-cust">Customer</label><input id="ct-cust" type="text" placeholder="e.g. KA-05 Furniture" style="width:13em"></div>
+      <div class="field"><label for="ct-teu">TEU</label><input id="ct-teu" type="number" min="1" value="20"></div>
+      <div class="field"><label for="ct-mt">MT</label><input id="ct-mt" class="mt" type="number" min="0" value="${20*BD(b).mtPerTeu}"></div>
+      <button class="primary" type="submit">Reserve</button></form>
+  </section>`;
+}
+
+/* ================= Heatmap ================= */
+let heatMetric='max';
+function heatPanel(){
+  const b=B, cols=VOYAGES;
+  const val=(p)=>{ const e=effP(b,p), u=usedP(b,p), f=fcP(b,p); const v=heatMetric==='booked'?u:heatMetric==='forecast'?f:{teu:Math.max(u.teu,f.teu),mt:Math.max(u.mt,f.mt)}; return {e,v}; };
+  const cell=(e,v)=>{ if(!e.teu) return '<td class="hm hmn">—</td>'; const r=Math.max(v.teu/e.teu, e.mt?v.mt/e.mt:0), c=r>1?'hm3':r>=0.9?'hm2':r>=0.6?'hm1':'hm0';
+    return `<td class="hm ${c}" title="${n0(v.teu)} / ${n0(e.teu)} TEU · ${n0(v.mt)} / ${n0(e.mt)} MT"><b>${Math.round(r*100)}%</b><small>${n0(v.teu)}/${n0(e.teu)}</small></td>`; };
+  const rows=BD(b).pols.map(pol=>{ const ports=[pol,...feedersOf(b,pol)];
+    return `<tr><td><span class="pname">${nm(pol)}${feedersOf(b,pol).length?`<small>incl. ports loading via ${sn(pol)}</small>`:''}</span></td>${cols.map(c=>withVoy(c.id,()=>{ const g=ports.filter(p=>origins(b).includes(p)); const e=vsum(g.map(p=>val(p).e)), v=vsum(g.map(p=>val(p).v)); return cell(e,v); })).join('')}</tr>`; }).join('');
+  return `<section class="panel" data-nav="Heatmap"><div class="ph"><div><h2>Heatmap · ${BD(b).label}</h2>
+    <p>Each load call against its allocation on every vessel in the plan. The higher of TEU or tonnage use sets the colour, so a weight-full port shows red even with TEU left.</p></div>
+    <div class="field"><label for="hm-metric">Show</label><select id="hm-metric"><option value="max" ${heatMetric==='max'?'selected':''}>Higher of booked or forecast</option><option value="booked" ${heatMetric==='booked'?'selected':''}>Booked</option><option value="forecast" ${heatMetric==='forecast'?'selected':''}>Forecast</option></select></div></div>
+    <div class="tbl-wrap"><table class="heat"><thead><tr><th>Load call</th>${cols.map(c=>`<th class="num ${c.id===V?'cur':''}">${c.vessel}<small>${c.id}${b==='WB'?'W':'E'} · ETA ${fmt(addDays(ROT[BD(b).calls[0]].eta,c.wk*7))}</small></th>`).join('')}</tr></thead><tbody>${rows}</tbody></table></div>
+    <p class="note"><span class="hm-key hm0"></span> under 60% <span class="hm-key hm1"></span> 60–90% <span class="hm-key hm2"></span> 90–100% <span class="hm-key hm3"></span> over allocation</p>
+  </section>`;
+}
+
+/* theme toggle (Dark / Light) — follows system until the user picks */
+function themeNow(){ const t=document.documentElement.dataset.theme; return t || (matchMedia('(prefers-color-scheme: light)').matches?'light':'dark'); }
+function paintTheme(){ document.querySelectorAll('#theme-seg button').forEach(x=>x.setAttribute('aria-pressed',String(x.dataset.ui===themeNow()))); }
+try{ const t=localStorage.getItem('sad4-theme'); if(t) document.documentElement.dataset.theme=t; }catch(e){}
+document.getElementById('theme-seg').addEventListener('click',e=>{ const u=e.target.closest('button')?.dataset.ui; if(!u) return; document.documentElement.dataset.theme=u; try{localStorage.setItem('sad4-theme',u)}catch(err){} paintTheme(); });
+paintTheme();
+
+/* sidebar navigation built from the sections on screen */
+function buildNav(){
+  const secs=[...document.querySelectorAll('#app [data-nav]')];
+  secs.forEach((s,i)=>{ if(!s.id) s.id='sec-'+i; });
+  document.getElementById('nav').innerHTML = secs.map((s,i)=>`<a href="#${s.id}" data-go="${s.id}" class="${i===0?'on':''}">${esc(s.dataset.nav)}</a>`).join('');
+}
+document.getElementById('nav').addEventListener('click',e=>{ const a=e.target.closest('a[data-go]'); if(!a) return; e.preventDefault(); document.getElementById(a.dataset.go)?.scrollIntoView({behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth',block:'start'}); });
+let navTick=false;
+window.addEventListener('scroll',()=>{ if(navTick) return; navTick=true; requestAnimationFrame(()=>{ navTick=false;
+  const secs=[...document.querySelectorAll('#app [data-nav]')]; let cur=secs[0];
+  secs.forEach(s=>{ if(s.getBoundingClientRect().top<140) cur=s; });
+  document.querySelectorAll('#nav a').forEach(a=>a.classList.toggle('on',cur&&a.dataset.go===cur.id)); }); },{passive:true});
+
+document.getElementById('bound-seg').addEventListener('click',e=>{ const b=e.target.closest('button')?.dataset.bound; if(b&&b!==B){ B=b; armed=null; render(); } });
+document.getElementById('role').addEventListener('change',e=>{
+  role=e.target.value; armed=null;
+  if(role!=='HQ' && !loadsIn(B,role)){ const other=Object.keys(BOUNDS).find(b=>loadsIn(b,role)); if(other) B=other; }
+  render(); window.scrollTo({top:0});
+});
+document.getElementById('voy').addEventListener('change',e=>{ V=e.target.value; S=ALL.voyages[V]; armed=null; render(); });
+document.getElementById('reset').addEventListener('click',e=>{
+  const t=e.currentTarget;
+  if(t.dataset.armed){ ALL=seedAll(); S=ALL.voyages[V]; armed=null; dismissed.clear(); delete t.dataset.armed; t.textContent='Reset sample'; render(); toast('Sample data restored'); }
+  else { t.dataset.armed='1'; t.textContent='Click again to reset'; setTimeout(()=>{ delete t.dataset.armed; t.textContent='Reset sample'; },3000); }
+});
+
+const app=document.getElementById('app');
+app.addEventListener('click',e=>{
+  const btn=e.target.closest('button'); if(!btn) return;
+  if(btn.dataset.arm){ armed=btn.dataset.arm; render(); return; }
+  if('disarm' in btn.dataset){ armed=null; render(); return; }
+  if('dismiss' in btn.dataset){ dismissed.add(V+B+role); render(); return; }
+  if(btn.dataset.perf){ perfSel = perfSel===btn.dataset.perf ? null : btn.dataset.perf; render(); document.getElementById('perf-detail')?.scrollIntoView({block:'nearest'}); return; }
+  if('ask' in btn.dataset && askDraft){
+    const d=new Date(), r={id:uid(),...askDraft,status:'pending',at:d.toLocaleDateString('en-GB',{day:'2-digit',month:'short'})+' '+d.toTimeString().slice(0,5)};
+    S.requests.push(r); askDraft=null;
+    addLog(`${nm(r.port)} requested additional loading ${n0(r.teu)} TEU / ${n0(r.mt)} MT to ${sn(r.pod)} (${r.ref}).`);
+    render(); toast('Request sent to HQ'); return;
+  }
+  if(btn.dataset.withdraw){ S.requests=S.requests.filter(r=>r.id!==btn.dataset.withdraw); render(); toast('Request withdrawn'); return; }
+  if(btn.dataset.approve){
+    const r=S.requests.find(x=>x.id===btn.dataset.approve); if(!r) return;
+    const err=approveReq(r); if(err) return toast(err,true);
+    render(); toast(`Approved ${r.ref}. Booking confirmed and ${nm(r.port)} notified.`); return;
+  }
+  if(btn.dataset.reject){
+    const r=S.requests.find(x=>x.id===btn.dataset.reject); if(!r) return;
+    rejectReq(r); render(); toast(`Rejected ${r.ref}. ${nm(r.port)} notified.`); return;
+  }
+  if(btn.dataset.saveload){
+    const p=btn.dataset.saveload; S.loaded=S.loaded||{}; let n=0;
+    podsFor(B,p).forEach(d=>{ const t=document.getElementById(`ld-${B}-${p}-${d}-teu`), m=document.getElementById(`ld-${B}-${p}-${d}-mt`); if(!t) return;
+      if(t.value.trim()===''&&m.value.trim()===''){ delete S.loaded[K(B,p,d)]; return; }
+      S.loaded[K(B,p,d)]={teu:Math.max(0,parseInt(t.value,10)||0), mt:Math.max(0,parseFloat(m.value)||0)}; n++; });
+    const L=loadedP(B,p), U=usedP(B,p);
+    addLog(`Load list for ${nm(p)} saved: ${L?n0(L.teu):0} of ${n0(U.teu)} TEU booked loaded.`);
+    render(); toast(`Load list saved for ${nm(p)}`); return;
+  }
+  if(btn.dataset.tog){ const k=btn.dataset.tog; expanded.has(k)?expanded.delete(k):expanded.add(k); render(); return; }
+  if(btn.dataset.togall){ BD(B).pols.forEach(pol=>{ const k=B+'|'+pol; btn.dataset.togall==='1'?expanded.add(k):expanded.delete(k); }); render(); return; }
+  if(btn.dataset.opencell){ editCell=btn.dataset.opencell; render(); return; }
+  if('closecell' in btn.dataset){ editCell=null; render(); return; }
+  if(btn.dataset.apcell||btn.dataset.rjcell){
+    const key=btn.dataset.apcell||btn.dataset.rjcell, [b,p,d]=key.split('|');
+    let A=Z();
+    if(btn.dataset.apcell){
+      const pre=btn.dataset.pre; DIMS.forEach(x=>{ A[x.k]=Math.max(0,parseFloat(document.getElementById(`${pre}-${b}-${p}-${d}-${x.k}`).value)||0); });
+    }
+    const out=decidePod(b,p,d,A,rsnOf(`rs-${btn.dataset.pre||'ap'}-${key}`)); if(out.err) return toast(out.err,true);
+    editCell=null; render();
+    const r=out.res; toast(btn.dataset.rjcell?`Rejected ${nm(p)} → ${sn(d)}. Agent notified.`:`${nm(p)} → ${sn(d)}: ${r.full} booked in full, ${r.part} in part, ${r.rej} not loaded. Agent notified.`); return;
+  }
+  if(btn.dataset.relpod){
+    const key=btn.dataset.relpod, [b,p,d]=key.split('|'), pre=btn.dataset.pre;
+    const amt=pre?Object.fromEntries(DIMS.map(x=>[x.k,parseFloat(document.getElementById(`rl-${pre}-${key}-${x.k}`)?.value)||0])):null;
+    releasePod(b,p,d,amt,pre?rsnOf(`rs-${pre}-${key}`):''); render(); return;
+  }
+  if(btn.dataset.approveall){
+    const p=btn.dataset.approveall; armed=null; let ok=0, err='';
+    reqs(B,p,'pending').forEach(r=>{ const e=approveReq(r); if(e) err=e; else ok++; });
+    render(); toast(err?`Approved ${ok}. Not approved: ${err}`:`Approved ${ok} request${ok===1?'':'s'} for ${nm(p)}. Agent notified.`, !!err); return;
+  }
+  if(btn.dataset.rejectall){
+    const p=btn.dataset.rejectall; armed=null; const list=reqs(B,p,'pending'); list.forEach(rejectReq);
+    render(); toast(`Rejected ${list.length} request${list.length===1?'':'s'} for ${nm(p)}. Agent notified.`); return;
+  }
+  if(btn.dataset.ack){ S.notices.filter(n=>n.port===btn.dataset.ack).forEach(n=>n.read=true); render(); return; }
+  if(btn.dataset.go){ document.getElementById(btn.dataset.go)?.scrollIntoView({block:'start'}); return; }
+  if('savefc' in btn.dataset){
+    let n=0;
+    podsFor(B,role).forEach(d=>{
+      const t=document.getElementById(`fc-${d}-teu`).value.trim(), m=document.getElementById(`fc-${d}-mt`).value.trim();
+      if(t===''&&m===''){ delete S.forecast[K(B,role,d)]; return; }
+      S.forecast[K(B,role,d)]={teu:Math.max(0,parseInt(t,10)||0), mt:Math.max(0,parseFloat(m)||0)}; n++;
+    });
+    addLog(`${nm(role)} updated its forecast (${n} discharge port${n===1?'':'s'}).`);
+    render(); toast('Forecast saved'); return;
+  }
+  if(btn.dataset.release){ const p=btn.dataset.release; release(p, rsnOf('rs-port-'+p)); R_markAll(p); render(); return; }
+  if('applyrules' in btn.dataset){ const n=applyRules(); render(); toast(n?`Applied ${n} release${n===1?'':'s'}. Agents can see the change.`:'Nothing to apply'); return; }
+  if(btn.dataset.delay){ const i=+btn.dataset.delay, v=Math.max(0,parseInt(document.getElementById('dl-'+i).value,10)||0);
+    if(v) S.sched.delay[i]=v; else delete S.sched.delay[i];
+    addLog(v?`${nm(ROT[i].port)} delayed ${v} day${v>1?'s':''}. Later ETAs, cut-offs and forecast locks moved.`:`Delay at ${nm(ROT[i].port)} removed.`);
+    render(); toast(v?`${sn(ROT[i].port)} and later calls delayed ${v} day${v>1?'s':''}`:'Delay removed'); return; }
+  if(btn.dataset.omit){ const i=+btn.dataset.omit; S.sched.omit[i]=true; addLog(`${nm(ROT[i].port)} omitted on ${curVoy().vessel} ${V}.`); render(); toast(`${sn(ROT[i].port)} omitted. Move its cargo to the next vessel.`); return; }
+  if(btn.dataset.unomit){ const i=+btn.dataset.unomit; delete S.sched.omit[i]; addLog(`${nm(ROT[i].port)} reinstated.`); render(); toast(`${sn(ROT[i].port)} reinstated`); return; }
+  if(btn.dataset.movecall){ const i=+btn.dataset.movecall, r=moveToNext(touches(i)); if(r.err) return toast(r.err,true);
+    S.sched.moved[i]=true; addLog(`Omission at ${nm(ROT[i].port)}: ${r.nb} bookings (${tot(r.t)}) and their allocation moved to ${r.to}.`);
+    render(); toast(`Moved ${r.nb} bookings (${n0(r.t.teu)} TEU) to ${r.to}`); return; }
+  if('blank' in btn.dataset){ const r=moveToNext(()=>true); if(r.err) return toast(r.err,true);
+    S.sched.blank=true; armed=null; addLog(`${curVoy().vessel} ${V} blanked. ${r.nb} bookings (${tot(r.t)}) and all allocation moved to ${r.to}.`);
+    render(); toast(`Sailing blanked. ${r.nb} bookings moved to ${r.to}`); return; }
+  if(btn.dataset.delct){ const c=S.contracts.find(x=>x.id===btn.dataset.delct); S.contracts=S.contracts.filter(x=>x.id!==btn.dataset.delct); addLog(`HQ removed the contract reserve for ${c.customer} at ${nm(c.port)}.`); render(); toast('Reserve removed'); return; }
+  if(btn.dataset.reopen){ const p=btn.dataset.reopen; S.closed[K(B,p)]=false; addLog(`HQ reopened ${nm(p)} for booking. Released balance stays in the pool.`); render(); toast(`${nm(p)} reopened`); return; }
+  if(btn.dataset.del){ const x=S.bookings.find(y=>y.id===btn.dataset.del); S.bookings=S.bookings.filter(y=>y.id!==btn.dataset.del); render(); toast(`Removed ${x.ref}`); return; }
+  if(btn.dataset.take){
+    const u=btn.dataset.take, want={teu:parseInt(document.getElementById('pl-teu-'+u).value,10)||0, mt:parseFloat(document.getElementById('pl-mt-'+u).value)||0}, d=document.getElementById('pl-pod-'+u).value;
+    if(!vany(want)) return toast('Enter TEU or tonnage to take',true);
+    const av=poolFrom(B,u); const short=DIMS.find(x=>want[x.k]>av[x.k]);
+    if(short) return toast(`Only ${n0(av[short.k])} ${short.u} left from ${nm(u)}`,true);
+    const room=legRoom(B,role,d); const tight=DIMS.find(x=>want[x.k]>room[x.k]);
+    if(tight) return toast(`Vessel only has ${n0(Math.max(0,room[tight.k]))} ${tight.u} spare between ${sn(loadCall(B,role))} and ${sn(d)}`,true);
+    S.claims.push({id:uid(),b:B,from:u,port:role,pod:d,...want});
+    addLog(`${nm(role)} took ${n0(want.teu)} TEU / ${n0(want.mt)} MT from the ${nm(u)} pool for ${sn(d)}.`);
+    render(); toast(`Added ${n0(want.teu)} TEU / ${n0(want.mt)} MT to your ${sn(d)} allocation`);
+  }
+});
+// TEU is worked out from the boxes, plus slots lost around out-of-gauge units.
+function bkTeu(){ const g=id=>Math.max(0,parseInt(document.getElementById(id)?.value,10)||0), t=document.getElementById('bk-teu'); if(t) t.value=g('bk-e20')+2*(g('bk-e40')+g('bk-ehc'))+g('bk-oog')*g('bk-lost'); }
+app.addEventListener('input',e=>{
+  if(['bk-e20','bk-e40','bk-ehc','bk-oog','bk-lost'].includes(e.target.id)) bkTeu();
+  if(['bk-mt','bk-rf','bk-e20','bk-e40','bk-ehc','bk-dg','bk-oog','bk-lost'].includes(e.target.id)) bkHint();
+});
+app.addEventListener('change',e=>{
+  const t=e.target;
+  if(t.dataset.alloc){
+    const [b,p,d,dim]=t.dataset.alloc.split('|'), v=Math.max(0,parseFloat(t.value)||0);
+    const cur=base(b,p,d), next={...cur,[dim]:v};
+    const after=vadd(vsub(next,rel(b,p,d)),claimedIn(b,p,d)), u=used(b,p,d);
+    if(after[dim] < u[dim]){ t.value=cur[dim]; return toast(`${nm(p)} already has ${n0(u[dim])} ${DIMS.find(x=>x.k===dim).u} booked to ${nm(d)}`,true); }
+    S.alloc=S.alloc.filter(a=>!(a.b===b&&a.port===p&&a.pod===d)); if(vany(next)) S.alloc.push({b,port:p,pod:d,...next});
+    addLog(`HQ set ${nm(p)} → ${sn(d)} to ${n0(next.teu)} TEU / ${n0(next.mt)} MT.`);
+    render(); toast(legOver()?'Saved. The vessel is now over capacity on a leg.':`Saved ${nm(p)} → ${sn(d)}`, legOver());
+  }
+  if(t.dataset.rf){
+    const [b,p]=t.dataset.rf.split('|'), raw=t.value.trim(), u=rfUsed(b,p);
+    if(raw===''){ delete S.rfAlloc[K(b,p)]; addLog(`HQ removed the reefer BSA for ${nm(p)}. It now books from vessel plugs.`); render(); return toast(`${nm(p)} now books from vessel plugs`); }
+    const v=Math.max(0,parseInt(raw,10)||0);
+    if(v<u){ t.value=rfA(b,p)??''; return toast(`${nm(p)} already uses ${u} plugs`,true); }
+    S.rfAlloc[K(b,p)]=v; addLog(`HQ set the reefer BSA for ${nm(p)} to ${v} plugs.`);
+    render(); toast(legOver()?'Saved. Reefer plugs are now over the vessel limit on a leg.':`Reefer BSA for ${nm(p)}: ${v} plugs`, legOver());
+  }
+  if(t.id==='perf-period'){ perfPeriod=t.value; render(); return; }
+  if(t.id==='ob-on'||t.id==='ob-cap'){
+    ALL.ob={on:document.getElementById('ob-on').checked, cap:parseFloat(document.getElementById('ob-cap').value)};
+    addLog(ALL.ob.on?`HQ allowed overbooking by no-show rate, capped at ${pct(ALL.ob.cap)}.`:'HQ turned off overbooking by no-show rate.');
+    render(); toast(ALL.ob.on?`Overbooking allowed up to ${pct(ALL.ob.cap)}`:'Overbooking off'); return;
+  }
+  if(t.id==='na-port') naPods();
+  if(t.id==='bk-pod') bkFpd();
+  if(t.id==='bk-fpd'||t.id==='bk-dgc'||t.id==='bk-cust') bkHint();
+  if(t.dataset.stage){ const [i,k]=t.dataset.stage.split('|'), v=Math.max(0,parseFloat(t.value)||0); ALL.rules.stages[+i][k]=k==='days'?v:v/100; render(); return; }
+  if(t.id==='rl-on'){ ALL.rules.on=t.checked; addLog(`HQ turned release rules ${t.checked?'on':'off'}.`); render(); return; }
+  if(t.id==='hm-metric'){ heatMetric=t.value; render(); return; }
+  if(t.dataset.oncap||t.dataset.svccap){
+    const isSvc=!!t.dataset.svccap, [b,x,y,dim]=(t.dataset.oncap||t.dataset.svccap).split('|'), key=K(b,x,y), raw=t.value.trim(), store=isSvc?S.svcCap:S.onCap;
+    const c={...(store[key]||{})}; if(raw==='') delete c[dim]; else c[dim]=Math.max(0,parseFloat(raw)||0);
+    if(c.teu==null&&c.mt==null) delete store[key]; else store[key]=c;
+    const what=store[key]?`max ${capTxt(store[key])}`:'no limit';
+    addLog(isSvc?`HQ set ${y} intake at ${nm(x)} to ${what}.`:`HQ set onward limit ex ${nm(x)} into ${nm(y)} to ${what}.`);
+    render(); toast('Intra-Asia limit saved'); return;
+  }
+  if(t.id==='ia-sel'){ iaSel=t.value; render(); return; }
+});
+app.addEventListener('submit',e=>{
+  e.preventDefault();
+  if(e.target.id==='f-alloc'){
+    const p=document.getElementById('na-port').value, d=document.getElementById('na-pod').value;
+    const v={teu:parseInt(document.getElementById('na-teu').value,10)||0, mt:parseFloat(document.getElementById('na-mt').value)||0};
+    if(!d) return toast('No discharge port comes after this port on this bound',true);
+    if(!vany(v)) return toast('Enter TEU or tonnage above zero',true);
+    const a=S.alloc.find(x=>x.b===B&&x.port===p&&x.pod===d); if(a){ a.teu+=v.teu; a.mt+=v.mt; } else S.alloc.push({b:B,port:p,pod:d,...v});
+    const fi=feedInfo(B,p);
+    addLog(`HQ released ${n0(v.teu)} TEU / ${n0(v.mt)} MT to ${nm(p)} for ${sn(d)}${fi?` (grouped under ${sn(fi.hub)})`:''}.`);
+    render(); toast(legOver()?'Added. The vessel is now over capacity on a leg.':`Added ${n0(v.teu)} TEU / ${n0(v.mt)} MT to ${nm(p)} → ${sn(d)}`, legOver());
+  }
+  if(e.target.id==='f-ct'){
+    const p=document.getElementById('ct-port').value, cust=document.getElementById('ct-cust').value.trim();
+    const v={teu:Math.max(0,parseInt(document.getElementById('ct-teu').value,10)||0), mt:Math.max(0,parseFloat(document.getElementById('ct-mt').value)||0)};
+    if(!cust) return toast('Enter the customer name',true);
+    if(!v.teu) return toast('Enter TEU to reserve',true);
+    const room=vsub(effP(B,p),vsum(contractsOf(B,p).map(pick)));
+    if(v.teu>room.teu) return toast(`${nm(p)} only has ${n0(Math.max(0,room.teu))} TEU of allocation not already reserved`,true);
+    S.contracts.push({id:uid(),b:B,port:p,customer:cust,...v});
+    addLog(`HQ reserved ${tot(v)} at ${nm(p)} for ${cust}.`); render(); toast(`Reserved ${n0(v.teu)} TEU at ${nm(p)} for ${cust}`); return;
+  }
+  if(e.target.id==='f-book'){
+    const p=role, d=document.getElementById('bk-pod').value, f=document.getElementById('bk-fpd').value, ref=document.getElementById('bk-ref').value.trim();
+    const g=id=>Math.max(0,parseInt(document.getElementById(id).value,10)||0);
+    const e20=g('bk-e20'), e40=g('bk-e40'), ehc=g('bk-ehc'), dg=g('bk-dg'), dgc=parseInt(document.getElementById('bk-dgc').value,10), oog=g('bk-oog');
+    const boxes=e20+e40+ehc, lost=oog*g('bk-lost');
+    const v={teu:e20+2*(e40+ehc)+lost, mt:parseFloat(document.getElementById('bk-mt').value)||0};
+    const sp={e20,e40,ehc,dg,dgc:dg?dgc:null,oog,lost};
+    const rf=Math.max(0,parseInt(document.getElementById('bk-rf').value,10)||0), rfTeu=Math.max(0,parseInt(document.getElementById('bk-rfteu').value,10)||0);
+    if(!ref) return toast('Enter a booking ref',true);
+    if(!d) return toast('No discharge port available',true);
+    if(!boxes) return toast('Enter at least one container',true);
+    if(dg>boxes||oog>boxes||rf>boxes) return toast('DG, out-of-gauge and reefer units cannot be more than the boxes booked',true);
+    if(dg){ const ban=dgBanned(B,p,d,dgc); if(ban.length) return toast(`Class ${dgc} DG is not accepted at ${ban.map(sn).join(' and ')}. Booking blocked.`,true); }
+    if(dg||oog){ const sr=spRoom(B,p,d);
+      if(dg>sr.dg) return toast(`Vessel DG limit: only ${Math.max(0,sr.dg)} DG units free between ${sn(loadCall(B,p))} and ${sn(d)}`,true);
+      if(oog>sr.oog) return toast(`Vessel out-of-gauge limit: only ${Math.max(0,sr.oog)} OOG units free between ${sn(loadCall(B,p))} and ${sn(d)}`,true); }
+    if(!(v.mt>0)) return toast('Enter the gross weight in MT',true);
+    if(rf && rfTeu<rf) return toast('Reefer TEU must be at least the number of reefer units',true);
+    if(rfTeu>v.teu) return toast('Reefer TEU cannot be more than the booking TEU',true);
+    if(rfTeu && !rf) return toast('Enter how many reefer units (plugs) this booking needs',true);
+    const ol=onwardLeft(B,p,d,f);
+    if(ol && (v.teu>ol.left.teu || v.mt>ol.left.mt)) return toast(`Intra-Asia limit: ${ol.why}; ${leftTxt(ol.left)} left. Booking blocked.`,true);
+    const cust=document.getElementById('bk-cust')?.value||'';
+    if(S.sched.blank) return toast('This sailing is blanked. Book on the next vessel.',true);
+    if(omitted(lci(B,p))||omitted(ci(B,d))) return toast(`${omitted(lci(B,p))?sn(loadCall(B,p)):sn(d)} is omitted on this voyage. Book on the next vessel.`,true);
+    const left=custLeft(B,p,d,cust); const short=DIMS.find(x=>v[x.k]>left[x.k]);
+    const reserveNote = !cust && vany(ctUnfilled(B,p)) ? ` ${tot(ctUnfilled(B,p))} of your balance is reserved for contract customers.` : '';
+    if(short){
+      askDraft={b:B,port:p,pod:d,fpd:f,ref,...v,rf,rfTeu,...sp,customer:cust||undefined};
+      const h=document.getElementById('bk-hint'); h.className='hint ask';
+      h.innerHTML=`<span><b>Blocked.</b> Only ${n0(Math.max(0,left.teu))} TEU / ${n0(Math.max(0,left.mt))} MT left to ${sn(d)}.${reserveNote} Take balance from the pool, or ask HQ to approve additional loading.</span><button type="button" class="primary" data-ask>Request ${n0(v.teu)} TEU / ${n0(v.mt)} MT from HQ</button>`;
+      return toast(`Over your ${short.u} allocation to ${sn(d)}. Booking blocked.`,true);
+    }
+    if(rf){
+      const a=rfA(B,p);
+      if(a!==undefined){ if(rf>a-rfUsed(B,p)) return toast(`Only ${Math.max(0,a-rfUsed(B,p))} plugs left in your reefer BSA. Ask HQ for more.`,true); }
+      else { const room=rfRoom(B,p,d); if(rf>room) return toast(`Only ${Math.max(0,room)} vessel plugs free between ${sn(loadCall(B,p))} and ${sn(d)}`,true); }
+    }
+    S.bookings.push({id:uid(),b:B,ref,port:p,pod:d,fpd:f,...v,rf,rfTeu,...sp,customer:cust||undefined});
+    render(); toast(`Booked ${ref}: ${boxes} boxes, ${n0(v.teu)} TEU / ${n0(v.mt)} MT${rf?` / ${rf} reefer`:''}${dg?` / ${dg} DG`:''}${oog?` / ${oog} OOG`:''} to ${nm(f)}`);
+  }
+});
+
+render();
+</script>
+
+</body>
+</html>
