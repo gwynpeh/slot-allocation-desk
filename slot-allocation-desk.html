@@ -288,6 +288,31 @@ button.relb:hover{color:var(--bad);border-color:var(--bad)}
 .cell-acts{display:flex;flex-wrap:wrap;gap:4px;justify-content:flex-end;margin-top:5px}
 .dec{display:flex;flex-direction:column;gap:6px;text-align:left;white-space:normal;min-width:250px;max-width:340px;padding:10px;border:1px solid var(--warn);border-radius:8px;background:var(--warn-soft);font-size:.8rem}
 .dec-r{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+/* workspaces in the sidebar */
+#ws{display:flex;flex-direction:column;gap:4px}
+#ws a{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:9px 12px;border-radius:10px;color:var(--ink);text-decoration:none;font-weight:600;font-size:.92rem;border:1px solid transparent}
+#ws a:hover{background:var(--surface-2)}
+#ws a.on{border-color:var(--accent);background:var(--accent-soft);box-shadow:0 0 14px var(--glow)}
+#ws .badge{min-width:20px;height:20px;padding:0 6px;border-radius:99px;font-size:.72rem;font-weight:700;display:inline-grid;place-items:center;background:var(--warn-soft);color:var(--warn)}
+#ws .badge.act{background:var(--bad);color:#fff}
+#nav a{font-size:.82rem;padding:6px 10px}
+@media (max-width:900px){#ws{flex-direction:row;flex-wrap:wrap}}
+/* Today */
+.today .phase{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px}
+.today .phase li{display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:8px;background:var(--surface-2);color:var(--muted);font-size:.82rem;font-weight:600;border:1px solid var(--line)}
+.today .phase li span{width:20px;height:20px;border-radius:50%;display:grid;place-items:center;font-size:.72rem;background:var(--line);color:var(--ink);flex:none}
+.today .phase li.done{color:var(--ok)} .today .phase li.done span{background:var(--ok-soft);color:var(--ok)}
+.today .phase li.now{color:var(--ink);border-color:var(--accent);background:var(--accent-soft);box-shadow:0 0 12px var(--glow)} .today .phase li.now span{background:var(--accent);color:#fff}
+@media (max-width:700px){.today .phase{grid-template-columns:1fr 1fr}}
+.inbox-h{font-size:.92rem}
+.inbox{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.inbox .it{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:12px;align-items:center;padding:12px 14px;border-top:1px solid var(--line)}
+.inbox .it:first-child{border-top:0}
+.inbox .it .dot{width:10px;height:10px;border-radius:50%;background:var(--muted)}
+.inbox .it.act .dot{background:var(--bad);box-shadow:0 0 8px var(--bad)} .inbox .it.watch .dot{background:var(--warn)} .inbox .it.info .dot{background:var(--navy)}
+.inbox .it-t{display:flex;flex-direction:column;gap:2px;min-width:0}
+.inbox .it-t .muted{font-size:.84rem}
+@media (max-width:640px){.inbox .it{grid-template-columns:auto minmax(0,1fr)} .inbox .it .acts{grid-column:2}}
 select.rsn{font-size:.78rem;padding:3px 6px;max-width:15em}
 table.ia td.hm{min-width:132px}
 table.ia td.hm input{width:4.6em;margin-top:4px;font-size:.78rem;padding:3px 5px}
@@ -331,8 +356,10 @@ label.chk{display:flex;gap:6px;align-items:center;font-size:.85rem;font-weight:6
 <div class="shell">
   <aside class="side" aria-label="Navigation and voyage">
     <div class="logo"><svg class="pil-logo" id="pil-logo" viewBox="0 0 170 53" role="img" aria-label="PIL"></svg><span class="muted" style="font-size:.72rem;line-height:1.2">Trade<br>Allocation</span></div>
-    <div class="side-sec">Navigation</div>
-    <nav id="nav"></nav>
+    <div class="side-sec">Workspaces</div>
+    <nav id="ws" aria-label="Workspaces"></nav>
+    <div class="side-sec">On this screen</div>
+    <nav id="nav" aria-label="Sections on this screen"></nav>
     <div class="side-sec">Voyage</div>
     <div class="field"><label for="voy">Vessel</label><select id="voy"></select></div>
     <div class="field"><label>Bound</label>
@@ -1420,6 +1447,7 @@ function render(){
   const sel=document.getElementById('role'); sel.innerHTML=roleOptions(); sel.value=role;
   Object.keys(BOUNDS).forEach(b=>document.getElementById('bnd-'+b).setAttribute('aria-pressed',String(b===B)));
   document.getElementById('app').innerHTML = voyageHead() + routeStrip() + (role==='HQ'?hqView():agentView());
+  applyWorkspace();
   if(role==='HQ') naPods(); else bkFpd();
   buildNav();
   save();
@@ -1722,7 +1750,8 @@ function iaWeekPanel(){
     const cls=over(v,c)?'hm3':!any&&planned?'hm2':any?'hm1':'hmn';
     const tag=over(v,c)?`<span class="chip over">Bunching</span>`:!any&&planned?`<span class="chip warnc">Unfilled</span>`:'';
     return `<td class="hm ${cls}">${any?`<b>${n0(v.teu)} TEU</b><small>${n0(v.mt)} MT</small>`:'<b>—</b>'}${feeders?`<small class="muted">${feeders}</small>`:''}${tag}</td>`; };
-  const totRow=W.dates.map(d=>{ const f=W.vs.filter(x=>x.sail===d), v=vsum(f.flatMap(x=>x.bks).map(pick)), planned=W.vs.some(x=>x.plan===d);
+  // "Unfilled" only when one of our vessels was due on this sailing, had cargo for it, and slipped.
+  const totRow=W.dates.map(d=>{ const f=W.vs.filter(x=>x.sail===d), v=vsum(f.flatMap(x=>x.bks).map(pick)), planned=W.vs.some(x=>x.plan===d&&x.sail!==d&&x.bks.length);
     return cell(v,cap,planned,f.map(x=>x.v.id).join(' + ')); }).join('');
   const polRows=polsIn.map(p=>{ const c=polCap(p);
     return `<tr><td><span class="pname">${nm(p)}<small>${c?`limit ${capTxt(c)} per vessel`:'no limit set'}</small></span></td>${W.dates.map(d=>{ const f=W.vs.filter(x=>x.sail===d), v=vsum(f.flatMap(x=>x.bks.filter(k=>k.port===p)).map(pick)), planned=W.vs.some(x=>x.plan===d&&!x.off&&ALL.voyages[x.v.id].bookings.some(k=>k.b===b&&k.port===p&&k.pod===hub&&W.dests.includes(k.fpd)));
@@ -1808,6 +1837,130 @@ function heatPanel(){
   </section>`;
 }
 
+/* ================= Workspaces =================
+   The desk is one page of panels; each workspace shows only the panels for one job.
+   Today / My port opens with the voyage's stage and a list of what needs attention. */
+const WS_HQ=[{id:'today',label:'Today'},{id:'alloc',label:'Allocation'},{id:'plan',label:'Planning'},{id:'conn',label:'Connections'},{id:'perf',label:'Performance'},{id:'rules',label:'Rules & capacity'}];
+const WS_AG=[{id:'home',label:'My port'},{id:'book',label:'Book'},{id:'forecast',label:'Forecast'},{id:'pool',label:'Balance pool'},{id:'cargo',label:'My cargo'}];
+const WS_MAP_HQ={'Allocation board':'alloc','Additional loading':'alloc','Release allocation':'alloc','Balance pool':'alloc','Contract allocation':'alloc',
+  'Heatmap':'plan','Next vessels':'plan','Schedule changes':'plan','Connections':'conn','Intra-Asia onward':'conn','First-leg delays':'conn','Discharge plan':'conn',
+  'Load list':'perf','Port performance':'perf','Release rules':'rules','Reefer plug BSA':'rules','Equipment & special cargo':'rules'};
+const WS_MAP_AG={'My allocation':'home','Book cargo':'book','Forecast':'forecast','Balance you can use':'pool','Ports ahead of you':'pool','First-leg delays':'cargo','Next vessels':'cargo'};
+const WS={HQ:'today',AG:'home'};
+try{ const w=JSON.parse(localStorage.getItem('sad-ws')||'null'); if(w){ WS.HQ=w.HQ||WS.HQ; WS.AG=w.AG||WS.AG; } }catch(e){}
+const wsList = () => role==='HQ'?WS_HQ:WS_AG;
+const curWs = () => { const k=role==='HQ'?'HQ':'AG'; if(!wsList().some(w=>w.id===WS[k])) WS[k]=wsList()[0].id; return WS[k]; };
+function setWs(id){ WS[role==='HQ'?'HQ':'AG']=id; try{ localStorage.setItem('sad-ws',JSON.stringify(WS)); }catch(e){} }
+const navSecs = () => [...document.querySelectorAll('#app [data-nav]')].filter(s=>!s.hidden);
+function wsOf(el){
+  if(el.dataset.ws) return el.dataset.ws;
+  const cur=curWs(), hq=role==='HQ';
+  if(el.classList.contains('route')) return ['today','alloc','home','book'].includes(cur)?cur:'_';
+  const n=el.dataset.nav;
+  if(!n){
+    if(hq && el.classList.contains('notice')) return el.classList.contains('badn')?'today':el.querySelector('details.fold')?'plan':'_';   // Today's list covers the rest
+    return hq?'today':'home';
+  }
+  return (hq?WS_MAP_HQ:WS_MAP_AG)[n] || (hq?'conn':'cargo');
+}
+
+// Where the voyage is in the weekly cycle, for the whole bound (HQ) or one port (agent).
+const PHASES=['Allocation & forecast','Booking','Cut-off','After sailing'];
+function phaseOf(b,p){
+  const calls=p?[lci(b,p)]:BD(b).pols.map(x=>ci(b,x)), first=Math.min(...calls), last=Math.max(...calls);
+  const days=Math.round((new Date(addDays(E(first),-1))-new Date(TODAY))/864e5);
+  return {i: TODAY>=E(last)?3 : days<=3?2 : days<=14?1 : 0, days};
+}
+function nextCutoff(b,p){
+  const ports=p?[loadCall(b,p)]:BD(b).pols;
+  return ports.map(x=>({p:x,d:addDays(E(ci(b,x)),-1)})).filter(x=>x.d>=TODAY).sort((a,c)=>a.d<c.d?-1:1)[0]||null;
+}
+const daysTo = d => Math.round((new Date(d)-new Date(TODAY))/864e5);
+const whenTxt = d => { const n=daysTo(d); return n===0?'today':n===1?'tomorrow':n<0?`${-n} days ago`:`in ${n} days`; };
+
+// HQ: everything that needs a decision on the selected voyage and bound.
+function hqItems(){
+  const b=B, it=[];
+  const pend=S.requests.filter(r=>r.b===b&&r.status==='pending');
+  if(pend.length) it.push({sev:'act',ws:'alloc',nav:'Additional loading',title:`${pend.length} additional loading request${pend.length>1?'s':''} waiting`,detail:`${tot(vsum(pend.map(pick)))} from ${[...new Set(pend.map(r=>nm(r.port)))].join(', ')}`,btn:'Review'});
+  const due=rulesDue();
+  if(due.length) it.push({sev:'act',ws:'rules',nav:'Release rules',title:`${due.length} release${due.length>1?'s':''} due by your rules`,detail:due.slice(0,4).map(d=>`${nm(d.p)} stage ${d.i+1} (${pct(d.util)} booked)`).join(', ')+(due.length>4?'…':''),btn:'View',extra:'<button type="button" class="primary sm" data-applyrules>Apply all</button>'});
+  const L=legs(), over=L.map((l,i)=>({l,i})).filter(x=>DIMS.some(d=>x.l.alloc[d.k]>VESSEL.cap[d.k])||x.l.rf.booked+x.l.rf.held>VESSEL.plugs);
+  if(over.length) it.push({sev:'act',ws:'alloc',nav:'Allocation board',title:`Vessel over capacity on ${over.length} leg${over.length>1?'s':''}`,detail:over.map(x=>`${ROT[x.i].port.slice(2)}→${ROT[x.i+1].port.slice(2)}`).join(', '),btn:'Open board'});
+  const om=Object.keys(S.sched.omit).filter(i=>!S.sched.moved[i]);
+  if(om.length) it.push({sev:'act',ws:'plan',nav:'Schedule changes',title:`Omitted call${om.length>1?'s':''} with cargo still on this vessel`,detail:om.map(i=>nm(ROT[i].port)).join(', '),btn:'Move cargo'});
+  // Intra-Asia bunching / unfilled sailings caused by first-leg timing
+  BD(b).pods.forEach(pod=>[...new Set((BD(b).onward[pod]||[]).filter(f=>f.svc&&CONN_SCHED[pod+'|'+f.svc]).map(f=>f.svc))].forEach(svc=>{
+    const W=iaWeeks(b,pod,svc), cap=svcCapOf(b,pod,svc); let bunch=0, unf=0;
+    W.dates.forEach(d=>{ const v=vsum(W.vs.filter(x=>x.sail===d).flatMap(x=>x.bks).map(pick)); if(cap&&DIMS.some(x=>cap[x.k]!=null&&v[x.k]>cap[x.k])) bunch++; if(!vany(v)&&W.vs.some(x=>x.plan===d&&x.sail!==d&&x.bks.length)) unf++; });
+    if(bunch||unf) it.push({sev:bunch?'act':'watch',ws:'conn',nav:'First-leg delays',ia:pod+'|'+svc,title:`${svc} at ${sn(pod)}: ${[bunch?`${bunch} sailing${bunch>1?'s':''} bunching`:'',unf?`${unf} unfilled`:''].filter(Boolean).join(', ')}`,detail:'First-leg timing moves cargo onto the wrong intra-Asia sailing',btn:'View'});
+  }));
+  const risky=[]; BD(b).pods.forEach(pod=>(BD(b).onward[pod]||[]).forEach(f=>{ const c=connInfo(b,pod,f,'out'); if(atRisk(c)&&S.bookings.some(x=>x.b===b&&x.pod===pod&&x.fpd===f.port)) risky.push(`${sn(pod)}→${f.port.slice(2)}`); }));
+  BD(b).pols.forEach(pol=>(BD(b).feeders[pol]||[]).forEach(f=>{ const c=connInfo(b,pol,f,'in'); if(atRisk(c)&&origins(b).includes(f.port)&&usedP(b,f.port).teu) risky.push(`${f.port.slice(2)}→${sn(pol)}`); }));
+  if(risky.length) it.push({sev:'watch',ws:'conn',nav:'Connections',title:`${risky.length} tight connection${risky.length>1?'s':''} with cargo`,detail:risky.join(', '),btn:'View'});
+  const nv=nextVoys(); let rq=Z(), fo=Z();
+  nv.forEach(c=>withVoy(c.id,()=>origins(b).forEach(p=>{ rq=vadd(rq,pendP(b,p)); fo=vadd(fo,fcOver(b,p)); })));
+  if(vany(rq)||vany(fo)) it.push({sev:'watch',ws:'plan',nav:'Next vessels',title:'Rollover building on the next vessels',detail:[vany(rq)?`${tot(rq)} waiting approval`:'',vany(fo)?`forecast ${tot(fo)} above allocation`:''].filter(Boolean).join(' · '),btn:'Plan'});
+  const noFc=origins(b).filter(p=>loadsIn(b,p)&&!fcLocked(b,p)&&daysTo(fcLockDate(b,p))<=7&&BD(b).pods.some(d=>vany(base(b,p,d))&&!hasFc(b,p,d)));
+  if(noFc.length) it.push({sev:'watch',ws:'alloc',nav:'Allocation board',title:`${noFc.length} port${noFc.length>1?'s':''} still missing forecast, locking within 7 days`,detail:noFc.map(nm).join(', '),btn:'Open board'});
+  const noLoad=origins(b).filter(p=>sailed(b,p)&&usedP(b,p).teu&&!loadedP(b,p));
+  if(noLoad.length) it.push({sev:'watch',ws:'perf',nav:'Load list',title:`Load list not entered for ${noLoad.length} sailed port${noLoad.length>1?'s':''}`,detail:noLoad.map(nm).join(', '),btn:'Enter'});
+  const pool=vsum(origins(b).map(p=>poolFrom(b,p)));
+  if(vany(pool)) it.push({sev:'info',ws:'alloc',nav:'Balance pool',title:`${tot(pool)} in the balance pool`,detail:'Released by upstream ports, available to later calls',btn:'View'});
+  return it;
+}
+// Agent: the few things this port should do now.
+function agItems(){
+  const b=B, p=role, it=[];
+  const msgs=S.notices.filter(n=>n.port===p&&!n.read);
+  if(msgs.length) it.push({sev:'act',ws:'home',nav:'',title:`${msgs.length} message${msgs.length>1?'s':''} from HQ Trade`,detail:'Decisions on your additional loading requests, shown above',btn:''});
+  if(!loadsIn(b,p)) return it;
+  const li=lci(b,p);
+  if(omitted(li)) it.push({sev:'act',ws:'home',nav:'My allocation',title:`${sn(loadCall(b,p))} is omitted on this voyage`,detail:'Book on the next vessel; HQ is moving your cargo',btn:''});
+  const missing=podsFor(b,p).filter(d=>vany(base(b,p,d))&&!hasFc(b,p,d));
+  if(!fcLocked(b,p)&&missing.length) it.push({sev:daysTo(fcLockDate(b,p))<=7?'act':'watch',ws:'forecast',nav:'Forecast',title:`Forecast missing for ${missing.map(sn).join(', ')}`,detail:`Locks ${fmt(fcLockDate(b,p))} (${whenTxt(fcLockDate(b,p))})`,btn:'Enter forecast'});
+  const co=addDays(E(li),-1), left=vpos(vsub(effP(b,p),usedP(b,p)));
+  if(!closedP(b,p)&&daysTo(co)>=0&&daysTo(co)<=7) it.push({sev:daysTo(co)<=2?'act':'watch',ws:'book',nav:'Book cargo',title:`Cut-off ${fmt(co)} (${whenTxt(co)})`,detail:`${tot(left)} still unbooked. Book it or release what you will not use.`,btn:'Book'});
+  const pend=reqs(b,p,'pending'); if(pend.length) it.push({sev:'info',ws:'book',nav:'Book cargo',title:`${pend.length} request${pend.length>1?'s':''} waiting for HQ`,detail:tot(vsum(pend.map(pick))),btn:'View'});
+  const src=origins(b).filter(u=>u!==p&&vany(poolFrom(b,u))&&lci(b,u)<=li);
+  if(src.length) it.push({sev:'info',ws:'pool',nav:'Balance you can use',title:`${tot(vsum(src.map(u=>poolFrom(b,u))))} released ahead of you`,detail:`From ${src.map(nm).join(', ')}`,btn:'Take balance'});
+  const full=Object.keys(S.onCap).filter(k=>k.startsWith(b+'|'+p+'|')).map(k=>k.split('|')[2]).filter(f=>{ const c=S.onCap[K(b,p,f)], u=onUsed(b,p,f); return DIMS.some(x=>c[x.k]!=null&&u[x.k]>=c[x.k]); });
+  if(full.length) it.push({sev:'watch',ws:'book',nav:'Book cargo',title:`Intra-Asia limit reached into ${full.map(nm).join(', ')}`,detail:'Ask HQ Trade if you need more onward space',btn:'Book'});
+  return it;
+}
+function todayPanel(items){
+  const hq=role==='HQ', b=B, ph=hq?phaseOf(b):(loadsIn(b,role)?phaseOf(b,role):null), nc=hq?nextCutoff(b):(loadsIn(b,role)?nextCutoff(b,role):null);
+  const other=Object.keys(BOUNDS).find(x=>x!==b);
+  const otherN = hq ? withBound(other,()=>hqItems().filter(i=>i.sev!=='info').length) : 0;
+  const sevRank={act:0,watch:1,info:2};
+  const rows=items.slice().sort((a,c)=>sevRank[a.sev]-sevRank[c.sev]).map(i=>`<li class="it ${i.sev}"><span class="dot" aria-hidden="true"></span>
+    <div class="it-t"><b>${i.title}</b><span class="muted">${i.detail}</span></div>
+    <div class="acts">${i.extra||''}${i.btn?`<button type="button" class="ghost sm" data-goto="${i.ws}|${esc(i.nav)}"${i.ia?` data-iasel="${i.ia}"`:''}>${i.btn} →</button>`:''}</div></li>`).join('');
+  const nAct=items.filter(i=>i.sev==='act').length, nWatch=items.filter(i=>i.sev==='watch').length;
+  return `<section class="panel today" data-ws="${hq?'today':'home'}" data-nav="${hq?'Today':'Overview'}"><div class="ph"><div>
+      <div class="eyebrow">${curVoy().vessel} ${vtag()} · ${hq?BD(b).label:nm(role)}</div>
+      <h2>${hq?'Today':'Your port today'} · ${fmt(TODAY)}</h2></div>
+      <div class="acts">${hq&&otherN?`<button type="button" class="ghost sm" data-bound="${other}">${BD(other).label}: ${otherN} to look at →</button>`:''}</div></div>
+    ${ph?`<ol class="phase">${PHASES.map((t,i)=>`<li class="${i<ph.i?'done':i===ph.i?'now':''}"><span>${i+1}</span>${t}</li>`).join('')}</ol>
+    <p class="note">${nc?`Next cut-off: <b>${nm(nc.p)} ${fmt(nc.d)}</b> (${whenTxt(nc.d)}).`:'All cut-offs on this leg have passed.'}</p>`:''}
+    <div class="inbox-h"><b>${nAct?`${nAct} need${nAct===1?'s':''} action`:'Nothing urgent'}</b>${nWatch?` · ${nWatch} to watch`:''}</div>
+    ${rows?`<ul class="inbox">${rows}</ul>`:'<p class="empty">Nothing needs you right now.</p>'}
+  </section>`;
+}
+function withBound(b,fn){ const k=B; B=b; try{ return fn(); } finally{ B=k; } }
+
+let LAST_ITEMS=[];
+function applyWorkspace(){
+  const app=document.getElementById('app'), grid=app.querySelector('.grid'), hq=role==='HQ';
+  LAST_ITEMS = hq ? hqItems() : agItems();
+  if(grid && ((hq&&curWs()==='today')||(!hq&&curWs()==='home'))) grid.insertAdjacentHTML('afterbegin', todayPanel(LAST_ITEMS));
+  const cur=curWs();
+  app.querySelectorAll('.grid > *, .route').forEach(el=>{ el.hidden = wsOf(el)!==cur; });
+  const n=id=>LAST_ITEMS.filter(i=>i.sev!=='info'&&(id===wsList()[0].id||i.ws===id)).length;
+  document.getElementById('ws').innerHTML = wsList().map(w=>{ const c=n(w.id);
+    return `<a href="#" data-wsgo="${w.id}" class="${w.id===cur?'on':''}">${w.label}${c?`<span class="badge ${LAST_ITEMS.some(i=>i.sev==='act'&&(w.id===wsList()[0].id||i.ws===w.id))?'act':''}">${c}</span>`:''}</a>`; }).join('');
+}
+
 /* theme toggle (Dark / Light) — follows system until the user picks */
 function themeNow(){ const t=document.documentElement.dataset.theme; return t || (matchMedia('(prefers-color-scheme: light)').matches?'light':'dark'); }
 function paintTheme(){ document.querySelectorAll('#theme-seg button').forEach(x=>x.setAttribute('aria-pressed',String(x.dataset.ui===themeNow()))); }
@@ -1817,14 +1970,20 @@ paintTheme();
 
 /* sidebar navigation built from the sections on screen */
 function buildNav(){
-  const secs=[...document.querySelectorAll('#app [data-nav]')];
+  const secs=navSecs();
   secs.forEach((s,i)=>{ if(!s.id) s.id='sec-'+i; });
   document.getElementById('nav').innerHTML = secs.map((s,i)=>`<a href="#${s.id}" data-go="${s.id}" class="${i===0?'on':''}">${esc(s.dataset.nav)}</a>`).join('');
 }
+function goWs(w,nav){
+  setWs(w); armed=null; render();
+  const el=nav?[...document.querySelectorAll('#app [data-nav]')].find(s=>s.dataset.nav===nav&&!s.hidden):null;
+  if(el) el.scrollIntoView({block:'start'}); else window.scrollTo({top:0});
+}
+document.getElementById('ws').addEventListener('click',e=>{ const a=e.target.closest('a[data-wsgo]'); if(!a) return; e.preventDefault(); goWs(a.dataset.wsgo,''); });
 document.getElementById('nav').addEventListener('click',e=>{ const a=e.target.closest('a[data-go]'); if(!a) return; e.preventDefault(); document.getElementById(a.dataset.go)?.scrollIntoView({behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth',block:'start'}); });
 let navTick=false;
 window.addEventListener('scroll',()=>{ if(navTick) return; navTick=true; requestAnimationFrame(()=>{ navTick=false;
-  const secs=[...document.querySelectorAll('#app [data-nav]')]; let cur=secs[0];
+  const secs=navSecs(); let cur=secs[0];
   secs.forEach(s=>{ if(s.getBoundingClientRect().top<140) cur=s; });
   document.querySelectorAll('#nav a').forEach(a=>a.classList.toggle('on',cur&&a.dataset.go===cur.id)); }); },{passive:true});
 
@@ -1844,6 +2003,8 @@ document.getElementById('reset').addEventListener('click',e=>{
 const app=document.getElementById('app');
 app.addEventListener('click',e=>{
   const btn=e.target.closest('button'); if(!btn) return;
+  if(btn.dataset.goto){ const [w,nav]=btn.dataset.goto.split('|'); if(btn.dataset.iasel) iaSel=btn.dataset.iasel; goWs(w,nav); return; }
+  if(btn.dataset.bound && !btn.closest('#bound-seg')){ B=btn.dataset.bound; armed=null; render(); return; }
   if(btn.dataset.arm){ armed=btn.dataset.arm; render(); return; }
   if('disarm' in btn.dataset){ armed=null; render(); return; }
   if('dismiss' in btn.dataset){ dismissed.add(V+B+role); render(); return; }
