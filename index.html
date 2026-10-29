@@ -42,6 +42,7 @@ img{max-width:100%}
   --topbg:#FFFFFF; --topfg:#121828; --side:#FFFFFF; --glow:rgba(91,75,224,.22); --route:#C026D3; --gold:#CA8A04; color-scheme:light}
 
 *{box-sizing:border-box}
+[hidden]{display:none!important}   /* workspaces hide panels with the hidden attribute */
 body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:15px;line-height:1.45}
 /* Landscape: use the full screen width; on wide screens secondary panels sit side by side. */
 .wrap{width:100%;max-width:2200px;margin:0 auto;padding-inline:24px;padding-block:0 48px}
@@ -78,8 +79,9 @@ code,.mono{font-family:var(--f-mono);font-size:.82em}
 .brand h1{font-size:1.05rem;font-weight:700;color:var(--topfg);letter-spacing:0}
 .brand span{display:block;font-size:.66rem;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);font-weight:600;margin-top:2px}
 /* KPI strip: one soft box of equal tiles with hairline dividers, taking the space between title and theme toggle */
-.kpis{flex:1 1 640px;min-width:0;display:grid;grid-template-columns:repeat(auto-fit,minmax(108px,1fr));border:1px solid var(--line);border-radius:12px;background:var(--surface-2);overflow:hidden}
-.kpi{display:flex;flex-direction:column;justify-content:center;gap:3px;min-width:0;padding:9px 16px;box-shadow:-1px 0 0 var(--line)}
+.kpis{flex:1 1 560px;min-width:0;display:grid;grid-template-columns:repeat(auto-fit,minmax(96px,1fr));border:1px solid var(--line);border-radius:12px;background:var(--surface-2);overflow:hidden}
+.kpi{display:flex;flex-direction:column;justify-content:center;gap:3px;min-width:0;padding:8px 12px;box-shadow:-1px 0 0 var(--line)}
+@media (max-width:1600px){ .brand span{display:none} .brand h1{font-size:.95rem} .top-in{gap:10px 16px} .kpi b{font-size:.95rem!important} }
 .kpi span{font-size:.62rem;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);font-weight:600;white-space:nowrap}
 .kpi b{font-size:.98rem;font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap}
 .kpi span{overflow:hidden;text-overflow:ellipsis;letter-spacing:.08em!important}
@@ -327,8 +329,31 @@ button.relb:hover{color:var(--bad);border-color:var(--bad)}
 @media (max-width:640px){.inbox .it{grid-template-columns:auto minmax(0,1fr)} .inbox .it .acts{grid-column:2}}
 select.rsn{font-size:.78rem;padding:3px 6px;max-width:15em}
 /* allocation board: each cell is a small TEU / MT × Allocation / Forecast / Booked grid */
-table.board .pod-cell{min-width:236px}
-table.mini{border-collapse:collapse;width:100%;font-size:.78rem;background:var(--surface)}
+/* compact board: fits one screen; scales down slightly (fitBoard) if the window is small */
+table.board{table-layout:auto;width:100%}
+table.board > thead > tr > th,table.board > tbody > tr > td{padding:5px 6px}
+.tbl-wrap table.board > tbody > tr > td:first-child,.tbl-wrap table.board > thead > tr > th:first-child{min-width:132px;max-width:160px}
+table.board .pname small{font-size:.7rem;line-height:1.25}
+table.board .pod-cell{min-width:0;position:relative}
+.tbl-wrap.fit{max-height:none;overflow:visible;border:1px solid var(--line)}
+table.board .st-cell{min-width:132px}
+table.board .st-cell small{display:block;font-size:.7rem;margin-top:3px}
+table.board .st-act{margin-top:5px}
+table.board .st-act button{padding:3px 8px;font-size:.76rem}
+table.board tr.grp td{padding:5px 8px}
+.cell-acts{position:absolute;right:3px;bottom:3px;display:none;gap:4px;z-index:6;margin:0}
+.pod-cell:hover .cell-acts,.pod-cell:focus-within .cell-acts,.cell-acts.req,.cell-acts.open{display:flex}
+.cell-acts.open{top:calc(100% - 4px);bottom:auto;right:0;z-index:30;box-shadow:0 10px 30px rgba(0,0,0,.25);border-radius:8px}
+.cell-acts .relb{background:var(--surface)}
+.mk{display:inline-grid;place-items:center;width:14px;height:14px;border-radius:4px;font-size:.7rem;font-weight:800;margin-right:3px}
+.mk.pool{background:var(--accent-soft);color:var(--accent)} .mk.rel{background:var(--surface-2);color:var(--muted);border:1px solid var(--line)}
+.bh{display:flex;align-items:baseline;gap:6px 14px;flex-wrap:wrap}
+.info{font-size:.78rem;color:var(--accent);cursor:help;font-weight:600}
+.legend{font-size:.74rem;color:var(--muted);display:inline-flex;align-items:center;gap:4px}
+table.mini{border-collapse:collapse;width:100%;font-size:.74rem;background:var(--surface)}
+.tbl-wrap table.board table.mini th,.tbl-wrap table.board table.mini td{padding:2px 4px}
+table.board table.mini input{width:3.9em;padding:1px 3px;font-size:.74rem}
+table.board table.mini input.mt{width:4.6em}
 .tbl-wrap table.mini th,.tbl-wrap table.mini td{position:static!important;min-width:0!important;box-shadow:none!important;z-index:auto!important;
   padding:3px 6px;border:1px solid var(--line);text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums;vertical-align:middle}
 .tbl-wrap table.mini thead th{font-family:var(--f-body);font-size:.62rem;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);background:var(--surface-2)!important}
@@ -612,9 +637,10 @@ function seedAll(){
   }));
   // Sample contract reserves (key accounts) on every voyage; some existing bookings belong to them.
   Object.values(voyages).forEach(s=>{
-    s.contracts=[['WB','CNSHA','KA-01 Electronics',40,440],['WB','CNNGB','KA-02 Auto parts',30,330],['EB','INNSA','KA-03 Textiles',50,1000],['EB','INMUN','KA-04 Ceramics',40,1000]]
-      .map(([b,port,customer,teu,mt])=>({id:uid(),b,port,customer,teu,mt}));
-    s.contracts.forEach(c=>{ let got=0; s.bookings.filter(x=>x.b===c.b&&x.port===c.port).forEach(x=>{ if(got<c.teu*0.7 && x.teu<=c.teu-got){ x.customer=c.customer; got+=x.teu; } }); });
+    s.contracts=[['WB','CNSHA','INNSA','KA-01 Electronics',40,440],['WB','CNNGB','INMUN','KA-02 Auto parts',30,330],['WB','CNSHK','INNSA','KA-05 Furniture',20,240],
+                 ['EB','INNSA','CNSHA','KA-03 Textiles',50,1000],['EB','INMUN','SGSIN','KA-04 Ceramics',40,1000]]
+      .map(([b,port,pod,customer,teu,mt])=>({id:uid(),b,port,pod,customer,teu,mt}));
+    s.contracts.forEach(c=>{ let got=0; s.bookings.filter(x=>x.b===c.b&&x.port===c.port&&x.pod===c.pod).forEach(x=>{ if(got<c.teu*0.7 && x.teu<=c.teu-got){ x.customer=c.customer; got+=x.teu; } }); });
   });
   // 0413 eastbound runs 6 days late from Karachi onward, so its Singapore cargo lands on the same JKS sailing as 0414.
   voyages['0413'].sched.delay={7:6};
@@ -623,7 +649,7 @@ function seedAll(){
 
 let ALL, S, V, role, B='WB', armed=null;
 const dismissed=new Set();
-try{ ALL=JSON.parse(localStorage.getItem('sad12-all')||'null'); role=localStorage.getItem('sad4-role'); B=localStorage.getItem('sad4-bound')||'WB'; V=localStorage.getItem('sad4-voy'); }catch(e){}
+try{ ALL=JSON.parse(localStorage.getItem('sad13-all')||'null'); role=localStorage.getItem('sad4-role'); B=localStorage.getItem('sad4-bound')||'WB'; V=localStorage.getItem('sad4-voy'); }catch(e){}
 if(!ALL||!ALL.voyages) ALL=seedAll();
 if(!V||!ALL.voyages[V]) V=VOYAGES[0].id;
 Object.values(ALL.voyages).forEach(s=>{ s.forecast=s.forecast||{}; s.requests=s.requests||[]; s.notices=s.notices||[]; s.extra=s.extra||[]; s.loaded=s.loaded||{};
@@ -636,7 +662,7 @@ let askDraft=null, editCell=null;
 const expanded=new Set();                                         // load calls whose "loading via" ports are unfolded
 if(!role) role='HQ';
 if(!BOUNDS[B]) B='WB';
-function save(){ try{localStorage.setItem('sad12-all',JSON.stringify(ALL));localStorage.setItem('sad4-role',role);localStorage.setItem('sad4-bound',B);localStorage.setItem('sad4-voy',V)}catch(e){} }
+function save(){ try{localStorage.setItem('sad13-all',JSON.stringify(ALL));localStorage.setItem('sad4-role',role);localStorage.setItem('sad4-bound',B);localStorage.setItem('sad4-voy',V)}catch(e){} }
 const curVoy = () => VOYAGES.find(x=>x.id===V);
 const voyIdx = () => VOYAGES.findIndex(x=>x.id===V);
 const nextVoys = (n=3) => VOYAGES.slice(voyIdx()+1, voyIdx()+1+n);
@@ -1020,7 +1046,7 @@ function connections(){
 
 // Each cell is a small grid: TEU and MT down, Allocation / Forecast / Booked across.
 function miniGrid(allocCell, f, hasF, u, e){
-  return `<table class="mini"><thead><tr><th></th><th>Allocation</th><th>Forecast</th><th>Booked</th></tr></thead><tbody>${DIMS.map(x=>`<tr><th>${x.u}</th>
+  return `<table class="mini"><thead><tr><th></th><th title="Allocation">Alloc</th><th title="Forecast">Fcst</th><th title="Booked">Bkd</th></tr></thead><tbody>${DIMS.map(x=>`<tr><th>${x.u}</th>
     <td>${allocCell(x)}</td>
     <td class="${hasF&&f[x.k]>e[x.k]?'fo':''}">${hasF?n0(f[x.k]):'—'}</td>
     <td class="${e[x.k]&&u[x.k]>e[x.k]?'ov':e[x.k]&&u[x.k]>=e[x.k]?'fullc':''}">${n0(u[x.k])}</td></tr>`).join('')}</tbody></table>`;
@@ -1036,8 +1062,11 @@ function portRow(b,p,opts){
       ? `<input type="number" min="0" step="1" class="${x.k}" id="al-${b}-${p}-${d}-${x.k}" data-alloc="${b}|${p}|${d}|${x.k}" value="${bs[x.k]}" aria-label="${nm(p)} to ${nm(d)} allocation ${x.u}">${e[x.k]!==bs[x.k]?`<small class="rev" title="Revised allocation">rev ${n0(e[x.k])}</small>`:''}`
       : `<b>${n0(e[x.k])}</b>`;
     const pr=vsum(reqs(b,p,'pending').filter(q=>q.pod===d).map(pick));
-    const tags=[vany(r)?`<span class="tag rel">−${n0(r.teu)}/${n0(r.mt)} released</span>`:'', vany(c)?`<span class="tag pool">+${n0(c.teu)}/${n0(c.mt)} pool</span>`:'', vany(pr)?`<span class="tag req">+${n0(pr.teu)}/${n0(pr.mt)} requested</span>`:'', (()=>{ const xa=extraIn(b,p,d); return vany(xa)?`<span class="tag pool">+${n0(xa.teu)}/${n0(xa.mt)} approved</span>`:''; })(), (()=>{ const l=loadedOf(b,p,d); return l?`<span class="tag ldt">Loaded ${n0(l.teu)} / ${n0(l.mt)}</span>`:''; })()].filter(Boolean).join(' ');
-    return `<td class="pod-cell">${miniGrid(allocCell,fc(b,p,d),hasFc(b,p,d),u,e)}${tags?`<span class="sub">${tags}</span>`:''}${editable&&role==='HQ'?podActions(b,p,d):''}</td>`;
+    // Detail that changes the revised allocation goes in the cell's tooltip; loaded stays visible.
+    const xa=extraIn(b,p,d), l=loadedOf(b,p,d);
+    const tip=[vany(r)?`Released ${tot(r)}`:'', vany(c)?`Taken from pool ${tot(c)}`:'', vany(xa)?`Approved extra ${tot(xa)}`:'', vany(pr)?`Requested ${tot(pr)}`:''].filter(Boolean).join(' · ');
+    const marks=[vany(r)?'<span class="mk rel" aria-hidden="true">−</span>':'', vany(c)||vany(xa)?'<span class="mk pool" aria-hidden="true">+</span>':''].join('');
+    return `<td class="pod-cell"${tip?` title="${tip}"`:''}>${miniGrid(allocCell,fc(b,p,d),hasFc(b,p,d),u,e)}${l||marks?`<span class="sub">${marks}${l?`<span class="tag ldt">Loaded ${n0(l.teu)} / ${n0(l.mt)}</span>`:''}</span>`:''}${editable&&role==='HQ'?podActions(b,p,d):''}</td>`;
   }).join('');
   const e=effP(b,p), u=usedP(b,p), ra=rfA(b,p), ru=rfUsed(b,p), rt=rfTeuUsed(b,p);
   let act='';
@@ -1053,17 +1082,16 @@ function portRow(b,p,opts){
     ${(()=>{ const o=baseP(b,p), F=fcP(b,p), L=loadedP(b,p);
       const ac=x=>`<b>${n0(e[x.k])}</b>${o[x.k]!==e[x.k]?`<small class="rev" title="Original allocation">orig ${n0(o[x.k])}</small>`:''}`;
       return `<td class="pod-cell tot-cell">${miniGrid(ac,F,vany(F),u,e)}<span class="sub">${fcLocked(b,p)?'<span class="tag rel">Forecast locked</span> ':''}${L?`<span class="tag ldt">Loaded ${n0(L.teu)} / ${n0(L.mt)}</span>`:''}</span></td>`; })()}
-    ${role==='HQ'?(()=>{ const c=cmP(b,p); return `<td class="num">${c?`<b>${usd(c)}</b><br><small class="muted">${n0(c/Math.max(1,u.teu))}/TEU</small>`:'<span class="muted">—</span>'}</td>`; })():''}
-    <td class="num rft">${ru||ra!==undefined?`${ru}${ra!==undefined?` / ${ra}`:''}<br><small>${rt} RF TEU</small>`:'<span class="muted">—</span>'}</td>
-    <td class="util">${utilBlock(u,e)}</td>
-    <td><span class="chip ${st.cls}">${st.txt}</span></td>
-    ${actions?`<td>${act}</td>`:''}</tr>`;
+    <td class="st-cell"><span class="chip ${st.cls}">${st.txt}</span>
+      ${role==='HQ'?(()=>{ const c=cmP(b,p); return c?`<small class="muted" title="Contribution margin booked">CM ${usd(c)} · ${n0(c/Math.max(1,u.teu))}/TEU</small>`:''; })():''}
+      ${ru||ra!==undefined?`<small class="rft" title="Reefer plugs used / port reefer BSA">RF ${ru}${ra!==undefined?` / ${ra}`:''} plugs · ${rt} TEU</small>`:''}
+      ${actions&&act?`<div class="st-act">${act}</div>`:''}</td></tr>`;
 }
 
 function board(b, filter, opts){
   const actions = opts.actions!==false;
-  const cols = BD(b).pods.length+5+(actions?1:0)+(role==='HQ'?1:0);
-  let h=`<div class="tbl-wrap scrolly"><table class="board"><thead><tr><th>Port of load</th>${BD(b).pods.map(d=>`<th>→ ${sn(d)}</th>`).join('')}<th>Total</th>${role==='HQ'?'<th class="num">Contribution<small>booked</small></th>':''}<th class="num">Reefer<small>plugs used / BSA</small></th><th>Utilisation</th><th>Status</th>${actions?'<th></th>':''}</tr></thead><tbody>`;
+  const cols = BD(b).pods.length+3;
+  let h=`<div class="tbl-wrap scrolly"><table class="board"><thead><tr><th>Port of load</th>${BD(b).pods.map(d=>`<th>→ ${sn(d)}</th>`).join('')}<th>Total</th><th>Status</th></tr></thead><tbody>`;
   BD(b).pols.forEach(pol=>{
     const g=groupPorts(b,pol).filter(filter); if(!g.length) return;
     const all=groupPorts(b,pol), e=vsum(all.map(x=>effP(b,x))), u=vsum(all.map(x=>usedP(b,x)));
@@ -1085,7 +1113,7 @@ function loadRow(b,m,actions){
   const cell=u=>vany(u)?`<span class="ld">Booked <b>${n0(u.teu)}</b> TEU · ${n0(u.mt)} MT</span>`:'<span class="muted">—</span>';
   return `<tr class="loadrow ${m===role?'self':''}"><td><span class="pname">${nm(m)} <code class="muted">${m}</code><small>Loading only · books against the shared ${nm(aKey(b,m))} allocation</small></span></td>
     ${BD(b).pods.map(d=>podOK(b,m,d)?`<td class="num">${cell(own(d))}</td>`:'<td class="na">·</td>').join('')}
-    <td class="num">${cell(own())}</td><td colspan="${3+(role==='HQ'?1:0)+(actions?1:0)}"></td></tr>`;
+    <td class="num">${cell(own())}</td><td></td></tr>`;
 }
 
 function dischargePlan(b, bks, title, note, onlyPod){
@@ -1152,7 +1180,8 @@ function podActions(b,p,d){
   if(vany(un) && !closedP(b,p)) h+= armed==='rp:'+key
     ? relForm(key,un,'hq')
     : `<button type="button" class="ghost sm relb" data-arm="rp:${key}" title="Release unused balance to ${nm(d)} only">Release ${un.teu?n0(un.teu)+' TEU':n0(un.mt)+' MT'}</button>`;
-  return h?`<span class="cell-acts">${h}</span>`:'';
+  // Release shows on hover; a waiting request keeps Review visible; an open box floats over the board.
+  return h?`<span class="cell-acts${pend.length?' req':''}${editCell===key||armed==='rp:'+key?' open':''}">${h}</span>`:'';
 }
 
 function forecastPanel(b,p){
@@ -1351,8 +1380,9 @@ function hqView(){
   const opts=[]; BD(b).pols.forEach(pol=>{ opts.push(pol); feedersOf(b,pol).forEach(f=>opts.push(f)); });
   const sources = origins(b).filter(u=>vany(relP(b,u)));
   return `<div class="grid">${alerts()}${reminder()}
-    <section class="panel" data-nav="Allocation board"><div class="ph"><div><h2>${BD(b).label} allocation board</h2>
-      <p>Set TEU and tonnage per port of load and port of discharge. Ports without a call are grouped under the call they join, so a group total is what loads at that call. A port is full when it runs out of either TEU or tonnage. A dot means that discharge port comes before the load port.</p></div>
+    <section class="panel board-panel" data-nav="Allocation board"><div class="ph"><div class="bh"><h2>${BD(b).label} allocation board · ${curVoy().vessel} ${vtag()}</h2><span class="sample">Sample · today ${fmt(TODAY)}</span>
+      <span class="info" tabindex="0" title="Type allocation in TEU and MT for each port of load and discharge. Each cell shows Allocation / Forecast / Booked. Ports loading via a call fold under it; the YRD ports share one allocation. Amber forecast = above allocation, green booked = at allocation, red = over. A dot means that discharge port comes before the load port. Hover a cell to release balance; Review appears when a request is waiting.">ⓘ How to read</span>
+      <span class="legend"><span class="mk pool">+</span> pool / approved <span class="mk rel">−</span> released · hover a cell for detail</span></div>
       <div class="acts"><button type="button" class="ghost sm" data-togall="1">Expand all</button><button type="button" class="ghost sm" data-togall="0">Collapse all</button></div></div>
       ${board(b,()=>true,{editable:true})}
     </section>
@@ -1457,7 +1487,7 @@ function agentView(){
         <div class="field"><label for="bk-ref">Booking ref</label><input id="bk-ref" type="text" value="${p.slice(2)}${b==='WB'?'W':'E'}${Math.floor(Math.random()*9000)+1000}" style="width:9em"></div>
         <div class="field"><label for="bk-pod">Port of discharge</label><select id="bk-pod">${podOpts}</select></div>
         <div class="field"><label for="bk-fpd">Final destination</label><select id="bk-fpd"></select></div>
-        <div class="field"><label for="bk-cust">Customer</label><select id="bk-cust"><option value="">Spot / other</option>${contractsOf(b,p).map(c=>`<option value="${esc(c.customer)}">${esc(c.customer)}</option>`).join('')}</select></div>
+        <div class="field"><label for="bk-cust">Customer</label><select id="bk-cust"><option value="">Spot / other</option>${[...new Set(contractsOf(b,p).map(c=>c.customer))].map(cu=>`<option value="${esc(cu)}">${esc(cu)} (protected ${contractsOf(b,p).filter(c=>c.customer===cu).map(c=>sn(c.pod)).join(', ')})</option>`).join('')}</select></div>
         <div class="field"><label for="bk-e20">20'</label><input id="bk-e20" type="number" min="0" step="1" value="2"></div>
         <div class="field"><label for="bk-e40">40'</label><input id="bk-e40" type="number" min="0" step="1" value="1"></div>
         <div class="field"><label for="bk-ehc">40'HC</label><input id="bk-ehc" type="number" min="0" step="1" value="0"></div>
@@ -1472,7 +1502,7 @@ function agentView(){
         <button class="primary" type="submit" ${closed?'disabled':''}>Add booking</button>
       </form>
       <p class="hint" id="bk-hint"></p>
-      ${contractsOf(b,p).length?`<p class="note">Contract reserve at ${nm(p)}: ${contractsOf(b,p).map(c=>{ const u=ctUsed(c); return `<b>${esc(c.customer)}</b> ${n0(u.teu)} of ${n0(c.teu)} TEU`; }).join(' · ')}. Unfilled reserve (${tot(ctUnfilled(b,p))}) is held for these customers; spot bookings cannot use it.</p>`:''}
+      ${contractsOf(b,p).length?`<p class="note">Space protected at ${nm(p)}: ${contractsOf(b,p).map(c=>{ const u=ctUsed(c); return `<b>${esc(c.customer)}</b> → ${sn(c.pod)} ${n0(u.teu)} of ${n0(c.teu)} TEU`; }).join(' · ')}. Spot bookings to those ports cannot use the unfilled part (${tot(ctUnfilled(b,p))}).</p>`:''}
       ${myBk.length?`<div class="tbl-wrap"><table><thead><tr><th>Ref</th><th>POD</th><th>Final destination</th><th>Handling</th><th class="num">TEU<small>boxes</small></th><th class="num">MT</th><th class="num">RF</th><th>Special</th><th></th></tr></thead><tbody>${
         myBk.slice().reverse().map(x=>`<tr><td class="mono">${esc(x.ref)}${x.customer?`<br><small class="muted">${esc(x.customer)}</small>`:''}</td><td>${sn(x.pod)}</td><td>${nm(x.fpd)}</td><td>${handling(b,x.pod,x.fpd)}</td><td class="num">${n0(x.teu)}<br><small class="muted">${eqLabel(x)}</small></td><td class="num wt">${n0(x.mt)}</td><td class="num rft">${x.rf?`${x.rf} <small>(${x.rfTeu} TEU)</small>`:'<span class="muted">—</span>'}</td><td>${spChips(x)||'<span class="muted">—</span>'}</td><td>${closed?'':`<button type="button" class="ghost" data-del="${x.id}" aria-label="Remove booking ${esc(x.ref)}">Remove</button>`}</td></tr>`).join('')
       }</tbody></table></div>`:'<p class="empty">No bookings yet. Add the first one above.</p>'}
@@ -1507,6 +1537,7 @@ function render(){
   applyWorkspace();
   if(role==='HQ') naPods(); else bkFpd();
   buildNav();
+  fitBoard();
   save();
 }
 
@@ -1756,11 +1787,13 @@ function connInfo(b,hub,f,dir){
 const atRisk = c => c.cls==='over'||(c.cls==='warnc'&&c.days!==null);
 
 /* ================= Contract allocation ================= */
-const contractsOf = (b,p) => S.contracts.filter(c=>c.b===b&&c.port===p);
-const ctUsed = c => vsum(S.bookings.filter(x=>x.b===c.b&&x.port===c.port&&x.customer===c.customer).map(pick));
-const ctUnfilled = (b,p,except) => vsum(contractsOf(b,p).filter(c=>c.customer!==except).map(c=>vpos(vsub(pick(c),ctUsed(c)))));
-// Spot cargo cannot use balance still reserved for contract customers.
-const custLeft = (b,p,d,cust) => vsub(bookLeft(b,p,d), ctUnfilled(b,p,cust||null));
+// Space protection: allocation held for a named account on one port of load → port of discharge.
+const contractsOf = (b,p,d) => S.contracts.filter(c=>c.b===b&&c.port===aKey(b,p)&&(!d||!c.pod||c.pod===d));
+const ctUsed = c => vsum(S.bookings.filter(x=>x.b===c.b&&aKey(c.b,x.port)===c.port&&(!c.pod||x.pod===c.pod)&&x.customer===c.customer).map(pick));
+const ctUnfilled = (b,p,except,d) => vsum(contractsOf(b,p,d).filter(c=>c.customer!==except).map(c=>vpos(vsub(pick(c),ctUsed(c)))));
+// Spot cargo cannot use space still protected for an account on the same port pair.
+const custLeft = (b,p,d,cust) => vsub(bookLeft(b,p,d), ctUnfilled(b,p,cust||null,d));
+let ctEdit=null;
 /* ================= Intra-Asia onward allocation ================= */
 // Cargo transhipped onto connecting services is limited per port of load and destination, and per service intake at the hub.
 const onCapOf = (b,p,f) => S.onCap[K(b,p,f)]||null;
@@ -1860,22 +1893,36 @@ function iaPanel(){
   </section>`;
 }
 
+// Room to protect on a port pair: its revised allocation less what other accounts already hold there.
+const ctRoom = (b,p,d,exceptId) => vsub(eff(b,p,d), vsum(S.contracts.filter(c=>c.b===b&&c.port===aKey(b,p)&&c.pod===d&&c.id!==exceptId).map(pick)));
 function contractPanel(){
-  const b=B, list=S.contracts.filter(c=>c.b===b);
-  const opts=[]; BD(b).pols.forEach(pol=>groupPorts(b,pol).forEach(p=>opts.push(p)));
-  return `<section class="panel" data-nav="Contract allocation"><div class="ph"><div><h2>Contract allocation</h2>
-    <p>Part of a port's allocation reserved for key accounts and service contracts. Spot bookings cannot use the unfilled reserve, so contract cargo is protected until cut-off or until HQ removes the reserve.</p></div></div>
-    ${list.length?`<div class="tbl-wrap"><table><thead><tr><th>Port of load</th><th>Customer</th><th class="num">Reserved</th><th class="num">Booked</th><th>Fill</th><th></th></tr></thead><tbody>${
-      list.map(c=>{ const u=ctUsed(c); return `<tr><td><span class="pname">${nm(c.port)}</span></td><td><b>${esc(c.customer)}</b></td><td class="num">${tot(pick(c))}</td><td class="num">${tot(u)}</td>
-        <td class="util"><span class="u"><span>TEU</span>${meter(u.teu,c.teu)}<span class="num">${c.teu?pct(u.teu/c.teu):'—'}</span></span></td>
-        <td><button type="button" class="ghost sm" data-delct="${c.id}">Remove</button></td></tr>`; }).join('')
-    }</tbody></table></div>`:'<p class="empty">No contract reserves on this bound.</p>'}
+  const list=S.contracts.slice().sort((a,c)=>a.b===c.b?(lci(a.b,a.port)-lci(c.b,c.port))||a.customer.localeCompare(c.customer):a.b<c.b?1:-1);
+  const opts=[]; BD(B).pols.forEach(pol=>groupPorts(B,pol).forEach(p=>opts.push(p)));
+  const state=(u,c)=>{ const r=c.teu?u.teu/c.teu:0; return r>=1?['okc','Filled']:r>=0.5?['open','Filling']:r>0?['warnc','Low use']:['over','Not used']; };
+  const sum=b=>{ const l=list.filter(c=>c.b===b), P=vsum(l.map(pick)), U=vsum(l.map(c=>{ const u=ctUsed(c); return {teu:Math.min(u.teu,c.teu),mt:Math.min(u.mt,c.mt)}; }));
+    return `<span class="stat"><span>${BD(b).label}</span><b>${tot(P)}</b><small class="muted">${l.length} account line${l.length===1?'':'s'} · ${tot(vpos(vsub(P,U)))} unfilled</small></span>`; };
+  const row=c=>{ const u=ctUsed(c), [cls,txt]=state(u,c);
+    if(ctEdit===c.id) return `<tr class="self"><td><input id="ce-cust" type="text" value="${esc(c.customer)}" aria-label="Account" style="width:12em"></td><td>${BD(c.b).label}</td><td>${nm(c.port)}</td>
+      <td><select id="ce-pod" aria-label="Port of discharge">${podsFor(c.b,c.port).map(d=>`<option value="${d}" ${d===c.pod?'selected':''}>${nm(d)}</option>`).join('')}</select></td>
+      <td class="num"><span class="pair"><input id="ce-teu" type="number" min="0" value="${c.teu}" aria-label="Protected TEU"><input id="ce-mt" class="mt" type="number" min="0" value="${c.mt}" aria-label="Protected MT"></span></td>
+      <td class="num">${tot(u)}</td><td></td>
+      <td><div class="acts"><button type="button" class="primary sm" data-savect="${c.id}">Save</button><button type="button" class="ghost sm" data-cancelct>Cancel</button></div></td></tr>`;
+    return `<tr><td><b>${esc(c.customer)}</b></td><td>${BD(c.b).label}</td><td>${nm(c.port)}</td><td>${c.pod?nm(c.pod):'<span class="muted">Any</span>'}</td>
+      <td class="num">${tot(pick(c))}</td><td class="num">${tot(u)}</td>
+      <td class="util"><span class="u"><span>TEU</span>${meter(u.teu,c.teu)}<span class="num">${c.teu?pct(u.teu/c.teu):'—'}</span></span><span class="chip ${cls}">${txt}</span></td>
+      <td><div class="acts"><button type="button" class="ghost sm" data-editct="${c.id}">Amend</button><button type="button" class="ghost sm relb" data-delct="${c.id}">Remove</button></div></td></tr>`; };
+  return `<section class="panel" data-nav="Space protection"><div class="ph"><div><h2>Space protection list for accounts</h2>
+    <p>Allocation held for named accounts on a port of load and port of discharge, on ${curVoy().vessel} ${V}. Spot bookings on that port pair cannot use protected space until the account books it, HQ amends it, or it is removed.</p></div>
+    <div class="alert-sum">${sum('WB')}${sum('EB')}</div></div>
+    ${list.length?`<div class="tbl-wrap"><table><thead><tr><th>Account</th><th>Bound</th><th>Port of load</th><th>Port of discharge</th><th class="num">Protected</th><th class="num">Booked by account</th><th>Use</th><th></th></tr></thead><tbody>${list.map(row).join('')}</tbody></table></div>`:'<p class="empty">No space protected on this vessel.</p>'}
+    <h3>Protect space for an account · ${BD(B).label}</h3>
     <form class="form" id="f-ct">
+      <div class="field"><label for="ct-cust">Account</label><input id="ct-cust" type="text" placeholder="e.g. KA-06 Paper" style="width:13em"></div>
       <div class="field"><label for="ct-port">Port of load</label><select id="ct-port">${opts.map(p=>`<option value="${p}">${nm(p)}</option>`).join('')}</select></div>
-      <div class="field"><label for="ct-cust">Customer</label><input id="ct-cust" type="text" placeholder="e.g. KA-05 Furniture" style="width:13em"></div>
+      <div class="field"><label for="ct-pod">Port of discharge</label><select id="ct-pod">${BD(B).pods.map(d=>`<option value="${d}">${nm(d)}</option>`).join('')}</select></div>
       <div class="field"><label for="ct-teu">TEU</label><input id="ct-teu" type="number" min="1" value="20"></div>
-      <div class="field"><label for="ct-mt">MT</label><input id="ct-mt" class="mt" type="number" min="0" value="${20*BD(b).mtPerTeu}"></div>
-      <button class="primary" type="submit">Reserve</button></form>
+      <div class="field"><label for="ct-mt">MT</label><input id="ct-mt" class="mt" type="number" min="0" value="${20*BD(B).mtPerTeu}"></div>
+      <button class="primary" type="submit">Protect space</button></form>
   </section>`;
 }
 
@@ -1899,9 +1946,9 @@ function heatPanel(){
 /* ================= Workspaces =================
    The desk is one page of panels; each workspace shows only the panels for one job.
    Today / My port opens with the voyage's stage and a list of what needs attention. */
-const WS_HQ=[{id:'today',label:'Today'},{id:'alloc',label:'Allocation'},{id:'plan',label:'Planning'},{id:'conn',label:'Connections'},{id:'perf',label:'Performance'},{id:'rules',label:'Rules & capacity'}];
+const WS_HQ=[{id:'today',label:'Today'},{id:'alloc',label:'Allocation'},{id:'accounts',label:'Space protection'},{id:'plan',label:'Planning'},{id:'conn',label:'Connections'},{id:'perf',label:'Performance'},{id:'rules',label:'Rules & capacity'}];
 const WS_AG=[{id:'home',label:'My port'},{id:'book',label:'Book'},{id:'forecast',label:'Forecast'},{id:'pool',label:'Balance pool'},{id:'cargo',label:'My cargo'}];
-const WS_MAP_HQ={'Allocation board':'alloc','Additional loading':'alloc','Release allocation':'alloc','Balance pool':'alloc','Contract allocation':'alloc',
+const WS_MAP_HQ={'Allocation board':'alloc','Additional loading':'alloc','Release allocation':'alloc','Balance pool':'alloc','Space protection':'accounts',
   'Heatmap':'plan','Next vessels':'plan','Schedule changes':'plan','Connections':'conn','Intra-Asia onward':'conn','First-leg delays':'conn','Discharge plan':'conn',
   'Load list':'perf','Port performance':'perf','Release rules':'rules','Reefer plug BSA':'rules','Equipment & special cargo':'rules'};
 const WS_MAP_AG={'My allocation':'home','Book cargo':'book','Forecast':'forecast','Balance you can use':'pool','Ports ahead of you':'pool','First-leg delays':'cargo','Next vessels':'cargo'};
@@ -1914,7 +1961,7 @@ const navSecs = () => [...document.querySelectorAll('#app [data-nav]')].filter(s
 function wsOf(el){
   if(el.dataset.ws) return el.dataset.ws;
   const cur=curWs(), hq=role==='HQ';
-  if(el.classList.contains('route')) return ['today','alloc','home','book'].includes(cur)?cur:'_';
+  if(el.classList.contains('route')) return ['today','home','book'].includes(cur)?cur:'_';   // the board needs the room on Allocation
   const n=el.dataset.nav;
   if(!n){
     if(hq && el.classList.contains('notice')) return el.classList.contains('badn')?'today':el.querySelector('details.fold')?'plan':'_';   // Today's list covers the rest
@@ -2008,6 +2055,17 @@ function todayPanel(items){
 }
 function withBound(b,fn){ const k=B; B=b; try{ return fn(); } finally{ B=k; } }
 
+// Fit the allocation board into the window: no sideways or downward scrolling. Scales down, never below 70%.
+function fitBoard(){
+  const sec=[...document.querySelectorAll('#app [data-nav="Allocation board"]')].find(s=>!s.hidden); if(!sec) return;
+  const wrap=sec.querySelector('.tbl-wrap'), t=wrap&&wrap.querySelector('table.board'); if(!t) return;
+  wrap.classList.add('fit'); t.style.zoom=1;
+  const top=wrap.getBoundingClientRect().top+window.scrollY;
+  const availW=wrap.clientWidth-2, availH=window.innerHeight-top-14;
+  const z=Math.max(0.7, Math.min(1, availW/t.scrollWidth, availH>200?availH/t.scrollHeight:1));
+  t.style.zoom=z<0.995?z.toFixed(3):'';
+}
+let fitT; window.addEventListener('resize',()=>{ clearTimeout(fitT); fitT=setTimeout(fitBoard,150); });
 let LAST_ITEMS=[];
 function applyWorkspace(){
   const app=document.getElementById('app'), grid=app.querySelector('.grid'), hq=role==='HQ';
@@ -2015,6 +2073,7 @@ function applyWorkspace(){
   if(grid && ((hq&&curWs()==='today')||(!hq&&curWs()==='home'))) grid.insertAdjacentHTML('afterbegin', todayPanel(LAST_ITEMS));
   const cur=curWs();
   app.querySelectorAll('.grid > *, .route').forEach(el=>{ el.hidden = wsOf(el)!==cur; });
+  const vh=app.querySelector('.voyage'); if(vh) vh.hidden = cur==='alloc';     // the board carries the vessel name itself
   const n=id=>LAST_ITEMS.filter(i=>i.sev!=='info'&&(id===wsList()[0].id||i.ws===id)).length;
   document.getElementById('ws').innerHTML = wsList().map(w=>{ const c=n(w.id);
     return `<a href="#" data-wsgo="${w.id}" class="${w.id===cur?'on':''}">${w.label}${c?`<span class="badge ${LAST_ITEMS.some(i=>i.sev==='act'&&(w.id===wsList()[0].id||i.ws===w.id))?'act':''}">${c}</span>`:''}</a>`; }).join('');
@@ -2147,6 +2206,21 @@ app.addEventListener('click',e=>{
   if('blank' in btn.dataset){ const r=moveToNext(()=>true); if(r.err) return toast(r.err,true);
     S.sched.blank=true; armed=null; addLog(`${curVoy().vessel} ${V} blanked. ${r.nb} bookings (${tot(r.t)}) and all allocation moved to ${r.to}.`);
     render(); toast(`Sailing blanked. ${r.nb} bookings moved to ${r.to}`); return; }
+  if(btn.dataset.editct){ ctEdit=btn.dataset.editct; render(); return; }
+  if('cancelct' in btn.dataset){ ctEdit=null; render(); return; }
+  if(btn.dataset.savect){
+    const c=S.contracts.find(x=>x.id===btn.dataset.savect); if(!c) return;
+    const cust=document.getElementById('ce-cust').value.trim(), d=document.getElementById('ce-pod').value;
+    const v={teu:Math.max(0,parseInt(document.getElementById('ce-teu').value,10)||0), mt:Math.max(0,parseFloat(document.getElementById('ce-mt').value)||0)};
+    if(!cust) return toast('Enter the account name',true);
+    const room=ctRoom(c.b,c.port,d,c.id), short=DIMS.find(x=>v[x.k]>room[x.k]);
+    if(short) return toast(`${nm(c.port)} → ${sn(d)} only has ${tot(vpos(room))} of allocation not already protected`,true);
+    const was=`${c.customer} ${sn(c.pod)} ${tot(pick(c))}`;
+    // Bookings already tagged to the old account name follow the rename.
+    if(cust!==c.customer) S.bookings.forEach(x=>{ if(x.b===c.b&&aKey(c.b,x.port)===c.port&&x.customer===c.customer) x.customer=cust; });
+    Object.assign(c,{customer:cust,pod:d,...v}); ctEdit=null;
+    addLog(`HQ amended space protection: ${was} → ${cust} ${sn(d)} ${tot(v)}.`); render(); toast(`Amended ${cust}`); return;
+  }
   if(btn.dataset.delct){ const c=S.contracts.find(x=>x.id===btn.dataset.delct); S.contracts=S.contracts.filter(x=>x.id!==btn.dataset.delct); addLog(`HQ removed the contract reserve for ${c.customer} at ${nm(c.port)}.`); render(); toast('Reserve removed'); return; }
   if(btn.dataset.reopen){ const p=btn.dataset.reopen; S.closed[K(B,p)]=false; addLog(`HQ reopened ${nm(p)} for booking. Released balance stays in the pool.`); render(); toast(`${nm(p)} reopened`); return; }
   if(btn.dataset.del){ const x=S.bookings.find(y=>y.id===btn.dataset.del); S.bookings=S.bookings.filter(y=>y.id!==btn.dataset.del); render(); toast(`Removed ${x.ref}`); return; }
@@ -2222,14 +2296,15 @@ app.addEventListener('submit',e=>{
     render(); toast(legOver()?'Added. The vessel is now over capacity on a leg.':`Added ${n0(v.teu)} TEU / ${n0(v.mt)} MT to ${nm(p)} → ${sn(d)}`, legOver());
   }
   if(e.target.id==='f-ct'){
-    const p=document.getElementById('ct-port').value, cust=document.getElementById('ct-cust').value.trim();
+    const p=document.getElementById('ct-port').value, d=document.getElementById('ct-pod').value, cust=document.getElementById('ct-cust').value.trim();
     const v={teu:Math.max(0,parseInt(document.getElementById('ct-teu').value,10)||0), mt:Math.max(0,parseFloat(document.getElementById('ct-mt').value)||0)};
-    if(!cust) return toast('Enter the customer name',true);
-    if(!v.teu) return toast('Enter TEU to reserve',true);
-    const room=vsub(effP(B,p),vsum(contractsOf(B,p).map(pick)));
-    if(v.teu>room.teu) return toast(`${nm(p)} only has ${n0(Math.max(0,room.teu))} TEU of allocation not already reserved`,true);
-    S.contracts.push({id:uid(),b:B,port:p,customer:cust,...v});
-    addLog(`HQ reserved ${tot(v)} at ${nm(p)} for ${cust}.`); render(); toast(`Reserved ${n0(v.teu)} TEU at ${nm(p)} for ${cust}`); return;
+    if(!cust) return toast('Enter the account name',true);
+    if(!podOK(B,p,d)) return toast(`${nm(d)} comes before ${nm(p)} in the rotation`,true);
+    if(!v.teu) return toast('Enter TEU to protect',true);
+    const room=ctRoom(B,p,d,null), short=DIMS.find(x=>v[x.k]>room[x.k]);
+    if(short) return toast(`${nm(p)} → ${sn(d)} only has ${tot(vpos(room))} of allocation not already protected`,true);
+    S.contracts.push({id:uid(),b:B,port:aKey(B,p),pod:d,customer:cust,...v});
+    addLog(`HQ protected ${tot(v)} on ${nm(p)} → ${sn(d)} for ${cust}.`); render(); toast(`Protected ${tot(v)} on ${nm(p)} → ${sn(d)} for ${cust}`); return;
   }
   if(e.target.id==='f-book'){
     const p=role, d=document.getElementById('bk-pod').value, f=document.getElementById('bk-fpd').value, ref=document.getElementById('bk-ref').value.trim();
@@ -2257,7 +2332,7 @@ app.addEventListener('submit',e=>{
     if(S.sched.blank) return toast('This sailing is blanked. Book on the next vessel.',true);
     if(omitted(lci(B,p))||omitted(ci(B,d))) return toast(`${omitted(lci(B,p))?sn(loadCall(B,p)):sn(d)} is omitted on this voyage. Book on the next vessel.`,true);
     const left=custLeft(B,p,d,cust); const short=DIMS.find(x=>v[x.k]>left[x.k]);
-    const reserveNote = !cust && vany(ctUnfilled(B,p)) ? ` ${tot(ctUnfilled(B,p))} of your balance is reserved for contract customers.` : '';
+    const reserveNote = !cust && vany(ctUnfilled(B,p,null,d)) ? ` ${tot(ctUnfilled(B,p,null,d))} to ${sn(d)} is protected for accounts.` : '';
     if(short){
       askDraft={b:B,port:p,pod:d,fpd:f,ref,...v,rf,rfTeu,...sp,customer:cust||undefined};
       const h=document.getElementById('bk-hint'); h.className='hint ask';
