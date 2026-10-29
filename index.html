@@ -378,6 +378,16 @@ table.board tr.grp td{padding:5px 8px}
 .legend{font-size:.74rem;color:var(--muted);display:inline-flex;align-items:center;gap:4px}
 table.mini{border-collapse:collapse;width:100%;font-size:.74rem;background:var(--surface)}
 .tbl-wrap table.board table.mini th,.tbl-wrap table.board table.mini td{padding:2px 4px}
+.tbl-wrap table.board table.mini thead th{font-size:.64rem;letter-spacing:0;text-transform:none;font-weight:600}
+.tbl-wrap table.board table.mini th,.tbl-wrap table.board table.mini td{padding:2px 3px}
+table.board .st-cell{min-width:112px!important}
+.tbl-wrap table.board > tbody > tr > td:first-child,.tbl-wrap table.board > thead > tr > th:first-child{min-width:118px!important;max-width:140px}
+table.board > thead > tr > th,table.board > tbody > tr > td{padding:4px 4px}
+.panel.board-panel{padding:12px 14px;gap:8px}
+.board-panel .ph{flex-wrap:nowrap;align-items:center}
+.board-panel .bh{align-items:center}
+.board-panel .bh h2{font-size:1.1rem}
+@media (max-width:1600px){ .board-panel .legend,.board-panel .bh .sample{display:none} }
 table.board table.mini input{width:3.9em;padding:1px 3px;font-size:.74rem}
 table.board table.mini input.mt{width:4.6em}
 .tbl-wrap table.mini th,.tbl-wrap table.mini td{position:static!important;min-width:0!important;box-shadow:none!important;z-index:auto!important;
@@ -1077,7 +1087,7 @@ function connections(){
 
 // Each cell is a small grid: TEU and MT down, Allocation / Forecast / Booked across.
 function miniGrid(allocCell, f, hasF, u, e){
-  return `<table class="mini"><thead><tr><th></th><th title="Allocation">Alloc</th><th title="Forecast">Fcst</th><th title="Booked">Bkd</th></tr></thead><tbody>${DIMS.map(x=>`<tr><th>${x.u}</th>
+  return `<table class="mini"><thead><tr><th></th><th>Allocation</th><th>Forecast</th><th>Booked</th></tr></thead><tbody>${DIMS.map(x=>`<tr><th>${x.u}</th>
     <td>${allocCell(x)}</td>
     <td class="${hasF&&f[x.k]>e[x.k]?'fo':''}">${hasF?n0(f[x.k]):'—'}</td>
     <td class="${e[x.k]&&u[x.k]>e[x.k]?'ov':e[x.k]&&u[x.k]>=e[x.k]?'fullc':''}">${n0(u[x.k])}</td></tr>`).join('')}</tbody></table>`;
