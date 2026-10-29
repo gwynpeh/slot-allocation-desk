@@ -303,6 +303,15 @@ button.editb:hover{background:var(--accent-soft)}
 #nav a{font-size:.82rem;padding:5px 10px;font-weight:500;justify-content:flex-start}
 #nav a.on{box-shadow:none;background:transparent;border-color:transparent;color:var(--accent);font-weight:700}
 @media (max-width:900px){#ws{flex-direction:row;flex-wrap:wrap}}
+/* Bell in the top bar: today's stage and action list */
+.bell-wrap{position:relative;flex:none}
+.bell{position:relative;width:42px;height:42px;border-radius:50%;display:grid;place-items:center;padding:0;border:1px solid var(--line);background:var(--surface-2);color:var(--ink)}
+.bell:hover{background:var(--accent-soft)}
+.bell[aria-expanded="true"]{border-color:var(--accent);box-shadow:0 0 12px var(--glow)}
+.bell-n{position:absolute;top:-4px;right:-4px;min-width:20px;height:20px;padding:0 5px;border-radius:99px;display:grid;place-items:center;font-size:.72rem;font-weight:700;background:var(--warn);color:#fff;border:2px solid var(--topbg)}
+.bell-n.act{background:var(--bad)}
+.bell-pop{position:absolute;right:0;top:calc(100% + 10px);width:min(620px,94vw);max-height:78vh;overflow:auto;z-index:60;border-radius:14px;box-shadow:0 18px 50px rgba(0,0,0,.35)}
+.bell-pop .panel.today{border:1px solid var(--line);margin:0}
 /* Today */
 .today .phase{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px}
 .today .phase li{display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:8px;background:var(--surface-2);color:var(--muted);font-size:.82rem;font-weight:600;border:1px solid var(--line)}
@@ -421,6 +430,13 @@ label.chk{display:flex;gap:6px;align-items:center;font-size:.85rem;font-weight:6
       <div class="top-in">
         <div class="brand"><div class="brand-ic" aria-hidden="true">⚓</div><div><h1>Slot Allocation Desk (BSA)</h1><span>Cargoflow · Allocation</span></div></div>
         <div class="kpis" id="kpis"></div>
+        <div class="bell-wrap">
+          <button type="button" id="bell" class="bell" aria-haspopup="dialog" aria-expanded="false" aria-controls="bell-pop" title="What needs attention">
+            <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path fill="currentColor" d="M12 22a2.5 2.5 0 0 0 2.45-2h-4.9A2.5 2.5 0 0 0 12 22Zm7-6V11a7 7 0 0 0-5.5-6.84V3.5a1.5 1.5 0 0 0-3 0v.66A7 7 0 0 0 5 11v5l-2 2v1h18v-1l-2-2Z"/></svg>
+            <span class="bell-n" id="bell-n" hidden></span>
+          </button>
+          <div id="bell-pop" class="bell-pop" role="dialog" aria-label="What needs attention" hidden></div>
+        </div>
         <div class="seg" id="theme-seg" role="group" aria-label="Theme">
           <button type="button" data-ui="dark"><span class="dot" style="background:#7C6BFF"></span>Dark</button>
           <button type="button" data-ui="light"><span class="dot" style="background:#FACC15"></span>Light</button>
@@ -929,7 +945,7 @@ function pipelinePanel(){
     if(BD(b).pols.includes(h) && (BD(b).feeders[h]||[]).length) body+=row(`Loading via ${sn(h)}`, BD(b).feeders[h].map(f=>f.port.slice(2)).join(', '), ()=>flows(b,h).join);
     if(isPod(b,h) && (BD(b).onward[h]||[]).length) body+=row(`T/S at ${sn(h)}`, 'onward to '+BD(b).onward[h].map(f=>f.port.slice(2)).join(', '), ()=>flows(b,h).ts);
   });
-  return `<section class="panel wide-half" id="pipeline" data-nav="Next vessels"><div class="ph"><div><h2>Next vessels</h2>
+  return `<section class="panel" id="pipeline" data-nav="Next vessels"><div class="ph"><div><h2>Next vessels</h2>
     <p>Booked cargo on this voyage and the next ${nv.length||'none'}. Plan hub handling, connecting services and rollover ahead of time.</p></div></div>
     <div class="tbl-wrap"><table><thead><tr><th>${BD(b).label}</th>${cols.map((c,i)=>`<th class="num ${i===0?'cur':''}">${c.vessel}<small>${c.id}${tag}${i===0?' · this voyage':` · ETA ${fmt(addDays(ROT[BD(b).calls[0]].eta,c.wk*7))}`}</small></th>`).join('')}${nv.length?`<th class="num">Next ${nv.length} total</th>`:''}</tr></thead><tbody>${body}</tbody></table></div></section>`;
 }
@@ -985,7 +1001,7 @@ function routeStrip(){
         ${meter(u.teu,e.teu)}<span class="ln"><b>${n0(u.teu)}</b> / ${n0(e.teu)} TEU</span>
         ${meter(u.mt,e.mt,'mtm')}<span class="ln"><b>${n0(u.mt)}</b> / ${n0(e.mt)} MT</span>
         ${rfu?`<span class="ln rfl">RF ${rfu} plugs · ${rft} TEU</span>`:''}
-        ${fd.length?`<span class="fd">+ ${fd.map(x=>x.slice(2)).join(', ')} via ${p.slice(2)}</span>`:''}
+        ${fd.length?`<span class="fd">+ ${fd.map(x=>isGroup(B,x)?x:x.slice(2)).join(', ')} via ${p.slice(2)}</span>`:''}
         ${disLine}</li>`;
     } else if(isD){
       h+=`<li class="call dis${me}${omitted(i)?' omit':''}">
@@ -1936,7 +1952,8 @@ function heatPanel(){
 /* ================= Workspaces =================
    The desk is one page of panels; each workspace shows only the panels for one job.
    Today / My port opens with the voyage's stage and a list of what needs attention. */
-const WS_HQ=[{id:'today',label:'Today'},{id:'alloc',label:'Allocation'},{id:'accounts',label:'Space protection'},{id:'plan',label:'Planning'},{id:'conn',label:'Connections'},{id:'perf',label:'Performance'},{id:'rules',label:'Rules & capacity'}];
+// Overview first (Planning: next vessels), then down into one vessel (Allocation). Today's list lives in the bell.
+const WS_HQ=[{id:'plan',label:'Planning'},{id:'alloc',label:'Allocation'},{id:'accounts',label:'Space protection'},{id:'conn',label:'Connections'},{id:'perf',label:'Performance'},{id:'rules',label:'Rules & capacity'}];
 const WS_AG=[{id:'home',label:'My port'},{id:'book',label:'Book'},{id:'forecast',label:'Forecast'},{id:'pool',label:'Balance pool'},{id:'cargo',label:'My cargo'}];
 const WS_MAP_HQ={'Allocation board':'alloc','Additional loading':'alloc','Release allocation':'alloc','Balance pool':'alloc','Space protection':'accounts',
   'Heatmap':'plan','Next vessels':'plan','Schedule changes':'plan','Connections':'conn','Intra-Asia onward':'conn','First-leg delays':'conn','Discharge plan':'conn',
@@ -1951,10 +1968,11 @@ const navSecs = () => [...document.querySelectorAll('#app [data-nav]')].filter(s
 function wsOf(el){
   if(el.dataset.ws) return el.dataset.ws;
   const cur=curWs(), hq=role==='HQ';
-  if(el.classList.contains('route')) return ['today','home','book'].includes(cur)?cur:'_';   // the board needs the room on Allocation
+  if(el.classList.contains('route')) return ['plan','home','book'].includes(cur)?cur:'_';   // the board needs the room on Allocation
+  if(el.classList.contains('badn')) return cur;                                            // a blank sailing shows everywhere
   const n=el.dataset.nav;
   if(!n){
-    if(hq && el.classList.contains('notice')) return el.classList.contains('badn')?'today':el.querySelector('details.fold')?'plan':'_';   // Today's list covers the rest
+    if(hq && el.classList.contains('notice')) return el.querySelector('details.fold')?'plan':'_';   // the bell covers the rest
     return hq?'today':'home';
   }
   return (hq?WS_MAP_HQ:WS_MAP_AG)[n] || (hq?'conn':'cargo');
@@ -2060,13 +2078,18 @@ let LAST_ITEMS=[];
 function applyWorkspace(){
   const app=document.getElementById('app'), grid=app.querySelector('.grid'), hq=role==='HQ';
   LAST_ITEMS = hq ? hqItems() : agItems();
-  if(grid && ((hq&&curWs()==='today')||(!hq&&curWs()==='home'))) grid.insertAdjacentHTML('afterbegin', todayPanel(LAST_ITEMS));
+  // Today's stage and action list go in the bell, not on a page.
+  const pop=document.getElementById('bell-pop'); pop.innerHTML=todayPanel(LAST_ITEMS);
+  const nb=LAST_ITEMS.filter(i=>i.sev!=='info').length, bn=document.getElementById('bell-n');
+  bn.hidden=!nb; bn.textContent=nb; bn.className='bell-n'+(LAST_ITEMS.some(i=>i.sev==='act')?' act':'');
   const cur=curWs();
   app.querySelectorAll('.grid > *, .route').forEach(el=>{ el.hidden = wsOf(el)!==cur; });
   const vh=app.querySelector('.voyage'); if(vh) vh.hidden = cur==='alloc';     // the board carries the vessel name itself
-  const n=id=>LAST_ITEMS.filter(i=>i.sev!=='info'&&(id===wsList()[0].id||i.ws===id)).length;
+  // Planning reads top-down: next vessels first, then the heatmap and schedule changes.
+  if(cur==='plan' && grid) ['Schedule changes','Heatmap','Next vessels'].forEach(nv=>{ const el=grid.querySelector(`:scope > [data-nav="${nv}"]`); if(el) grid.insertBefore(el,grid.firstChild); });
+  const n=id=>LAST_ITEMS.filter(i=>i.sev!=='info'&&i.ws===id).length;
   document.getElementById('ws').innerHTML = wsList().map(w=>{ const c=n(w.id);
-    return `<a href="#" data-wsgo="${w.id}" class="${w.id===cur?'on':''}">${w.label}${c?`<span class="badge ${LAST_ITEMS.some(i=>i.sev==='act'&&(w.id===wsList()[0].id||i.ws===w.id))?'act':''}">${c}</span>`:''}</a>`
+    return `<a href="#" data-wsgo="${w.id}" class="${w.id===cur?'on':''}">${w.label}${c?`<span class="badge ${LAST_ITEMS.some(i=>i.sev==='act'&&i.ws===w.id)?'act':''}">${c}</span>`:''}</a>`
       + (w.id===cur?'<nav id="nav" class="ws-sub" aria-label="Sub views"></nav>':''); }).join('');   // sub views sit under the open workspace
 }
 
@@ -2089,6 +2112,19 @@ function goWs(w,nav){
   if(el) el.scrollIntoView({block:'start'}); else window.scrollTo({top:0});
 }
 document.getElementById('ws').addEventListener('click',e=>{ const a=e.target.closest('a[data-wsgo]'); if(!a) return; e.preventDefault(); goWs(a.dataset.wsgo,''); });
+/* Bell: opens today's list; its buttons work like the ones on the page, then the list closes. */
+const bellBtn=document.getElementById('bell'), bellPop=document.getElementById('bell-pop');
+function bellOpen(open){ bellPop.hidden=!open; bellBtn.setAttribute('aria-expanded',String(open)); }
+bellBtn.addEventListener('click',e=>{ e.stopPropagation(); bellOpen(bellPop.hidden); });
+bellPop.addEventListener('click',e=>{
+  e.stopPropagation();
+  const btn=e.target.closest('button'); if(!btn) return;
+  if(btn.dataset.goto){ const [w,nav]=btn.dataset.goto.split('|'); if(btn.dataset.iasel) iaSel=btn.dataset.iasel; bellOpen(false); goWs(w,nav); return; }
+  if('applyrules' in btn.dataset){ const n=applyRules(); render(); toast(n?`Applied ${n} release${n===1?'':'s'}`:'Nothing to apply'); return; }
+  if(btn.dataset.bound){ B=btn.dataset.bound; armed=null; render(); return; }
+});
+document.addEventListener('click',e=>{ if(!bellPop.hidden && !e.target.closest('.bell-wrap')) bellOpen(false); });
+document.addEventListener('keydown',e=>{ if(e.key==='Escape' && !bellPop.hidden){ bellOpen(false); bellBtn.focus(); } });
 document.getElementById('ws').addEventListener('click',e=>{ const a=e.target.closest('a[data-go]'); if(!a) return; e.preventDefault(); document.getElementById(a.dataset.go)?.scrollIntoView({behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth',block:'start'}); });
 let navTick=false;
 window.addEventListener('scroll',()=>{ if(navTick) return; navTick=true; requestAnimationFrame(()=>{ navTick=false;
