@@ -314,6 +314,25 @@ button.relb:hover{color:var(--bad);border-color:var(--bad)}
 .inbox .it-t .muted{font-size:.84rem}
 @media (max-width:640px){.inbox .it{grid-template-columns:auto minmax(0,1fr)} .inbox .it .acts{grid-column:2}}
 select.rsn{font-size:.78rem;padding:3px 6px;max-width:15em}
+/* allocation board: each cell is a small TEU / MT × Allocation / Forecast / Booked grid */
+table.board .pod-cell{min-width:236px}
+table.mini{border-collapse:collapse;width:100%;font-size:.78rem;background:var(--surface)}
+.tbl-wrap table.mini th,.tbl-wrap table.mini td{position:static!important;min-width:0!important;box-shadow:none!important;z-index:auto!important;
+  padding:3px 6px;border:1px solid var(--line);text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums;vertical-align:middle}
+.tbl-wrap table.mini thead th{font-family:var(--f-body);font-size:.62rem;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);background:var(--surface-2)!important}
+.tbl-wrap table.mini tbody th{font-size:.68rem;font-weight:700;color:var(--muted);text-align:left;background:var(--surface-2)!important;text-transform:none;letter-spacing:0}
+.tbl-wrap table.mini td{background:var(--surface)!important}
+table.mini input{width:4.8em;padding:2px 4px;font-size:.78rem}
+table.mini input.mt{width:5.4em}
+table.mini .fo{color:var(--warn);font-weight:700}
+table.mini .fullc{color:var(--ok);font-weight:700}
+table.mini .ov{color:var(--bad);font-weight:700}
+table.mini small.rev{display:block;font-size:.66rem;color:var(--accent)}
+.tot-cell table.mini td:nth-child(2){font-weight:700}
+.tag.ldt{background:var(--ok-soft);color:var(--ok)}
+tr.loadrow td{background:var(--surface-2);font-size:.84rem;padding-top:6px;padding-bottom:6px}
+.tbl-wrap tr.loadrow td:first-child{background:var(--surface-2);padding-left:44px}
+tr.loadrow .ld{white-space:nowrap}
 table.ia td.hm{min-width:132px}
 table.ia td.hm input{width:4.6em;margin-top:4px;font-size:.78rem;padding:3px 5px}
 table.ia td.hm .pair,table.ia td .pair{justify-content:center}
@@ -409,7 +428,7 @@ const DIMS = [{k:'teu',u:'TEU',label:'TEU'},{k:'mt',u:'MT',label:'Weight'}];
 const PORTS = {
   CNSHA:'Shanghai', CNNGB:'Ningbo', CNSHK:'Shekou', SGSIN:'Singapore', MYWSP:'Port Klang (Westport)',
   INNSA:'Nhava Sheva', INMUN:'Mundra', PKKHI:'Karachi',
-  CNZJG:'Zhangjiagang', CNNKG:'Nanjing', CNWHI:'Wuhu', CNWNZ:'Wenzhou', CNTAO:'Qingdao',
+  YRD:'YRD ports', CNZJG:'Zhangjiagang', CNNKG:'Nanjing', CNWHI:'Wuhu', CNWNZ:'Wenzhou', CNTAO:'Qingdao',
   IDJKT:'Jakarta', IDSUB:'Surabaya', VNSGN:'Ho Chi Minh', THLCH:'Laem Chabang', IDBLW:'Belawan', MYPEN:'Penang',
   INTKD:'ICD Tughlakabad', INLDH:'ICD Ludhiana', AEJEA:'Jebel Ali', KRPUS:'Busan'
 };
@@ -448,6 +467,12 @@ const BOUNDS = {
     }
   }
 };
+// Shared allocations: ports loading via a hub that HQ allocates as one. Bookings stay per port; allocation, forecast,
+// release and limits are held once for the group. YRD = Yangtze River Delta ports loading via Shanghai.
+const POOLS = { WB:{CNZJG:'YRD', CNNKG:'YRD', CNWHI:'YRD'} };
+function aKey(b,p){ return (POOLS[b]&&POOLS[b][p])||p; }                        // the allocation a port books against
+function membersOf(b,g){ return Object.keys(POOLS[b]||{}).filter(p=>POOLS[b][p]===g); }
+function isGroup(b,p){ return membersOf(b,p).length>0; }
 const VESSEL = {name:'KOTA CONTOH', service:'CIX · China–India–Pakistan Express', cap:{teu:1800, mt:22500}, plugs:80, dgCap:60, oogCap:8};
 
 /* ================= Sample state ================= */
@@ -456,7 +481,7 @@ function seed(){
   const alloc = [
     A('WB','CNSHA','SGSIN',40,480),A('WB','CNSHA','MYWSP',30,360),
     A('WB','CNSHA','INNSA',150,1800),A('WB','CNSHA','INMUN',100,1200),A('WB','CNSHA','PKKHI',60,720),
-    A('WB','CNZJG','INNSA',30,360),A('WB','CNNKG','INMUN',20,240),
+    A('WB','YRD','INNSA',30,360),A('WB','YRD','INMUN',20,240),
     A('WB','CNNGB','SGSIN',30,360),A('WB','CNNGB','INNSA',120,1440),A('WB','CNNGB','INMUN',80,960),A('WB','CNNGB','PKKHI',40,480),
     A('WB','CNWNZ','INNSA',20,240),
     A('WB','CNSHK','MYWSP',20,240),A('WB','CNSHK','INNSA',100,1200),A('WB','CNSHK','INMUN',60,720),A('WB','CNSHK','PKKHI',40,480),
@@ -568,8 +593,8 @@ function seedAll(){
   ];
   // Shanghai and its Yangtze ports sailed today: their load list is in, a few percent short of booked.
   first.loaded={};
-  ['CNSHA','CNZJG','CNNKG'].forEach((p,i)=>BOUNDS.WB.pods.forEach((d,j)=>{
-    const bk=first.bookings.filter(x=>x.b==='WB'&&x.port===p&&x.pod===d); if(!bk.length) return;
+  ['CNSHA','YRD'].forEach((p,i)=>BOUNDS.WB.pods.forEach((d,j)=>{
+    const bk=first.bookings.filter(x=>x.b==='WB'&&aKey('WB',x.port)===p&&x.pod===d); if(!bk.length) return;
     const t=bk.reduce((s,x)=>s+x.teu,0), m=bk.reduce((s,x)=>s+x.mt,0), f=0.88+((i*3+j)%5)*0.025;
     first.loaded[`WB|${p}|${d}`]={teu:Math.round(t*f), mt:Math.round(m*f)};
   }));
@@ -586,7 +611,7 @@ function seedAll(){
 
 let ALL, S, V, role, B='WB', armed=null;
 const dismissed=new Set();
-try{ ALL=JSON.parse(localStorage.getItem('sad11-all')||'null'); role=localStorage.getItem('sad4-role'); B=localStorage.getItem('sad4-bound')||'WB'; V=localStorage.getItem('sad4-voy'); }catch(e){}
+try{ ALL=JSON.parse(localStorage.getItem('sad12-all')||'null'); role=localStorage.getItem('sad4-role'); B=localStorage.getItem('sad4-bound')||'WB'; V=localStorage.getItem('sad4-voy'); }catch(e){}
 if(!ALL||!ALL.voyages) ALL=seedAll();
 if(!V||!ALL.voyages[V]) V=VOYAGES[0].id;
 Object.values(ALL.voyages).forEach(s=>{ s.forecast=s.forecast||{}; s.requests=s.requests||[]; s.notices=s.notices||[]; s.extra=s.extra||[]; s.loaded=s.loaded||{};
@@ -599,7 +624,7 @@ let askDraft=null, editCell=null;
 const expanded=new Set();                                         // load calls whose "loading via" ports are unfolded
 if(!role) role='HQ';
 if(!BOUNDS[B]) B='WB';
-function save(){ try{localStorage.setItem('sad11-all',JSON.stringify(ALL));localStorage.setItem('sad4-role',role);localStorage.setItem('sad4-bound',B);localStorage.setItem('sad4-voy',V)}catch(e){} }
+function save(){ try{localStorage.setItem('sad12-all',JSON.stringify(ALL));localStorage.setItem('sad4-role',role);localStorage.setItem('sad4-bound',B);localStorage.setItem('sad4-voy',V)}catch(e){} }
 const curVoy = () => VOYAGES.find(x=>x.id===V);
 const voyIdx = () => VOYAGES.findIndex(x=>x.id===V);
 const nextVoys = (n=3) => VOYAGES.slice(voyIdx()+1, voyIdx()+1+n);
@@ -623,7 +648,10 @@ const nm = p => PORTS[p]||p;
 const sn = p => nm(p).replace(' (Westport)','');
 const BD = b => BOUNDS[b];
 const ci = (b,port) => BD(b).calls.find(i=>ROT[i].port===port);           // call index of a port within a bound
-function feedInfo(b,p){ for(const [h,arr] of Object.entries(BD(b).feeders)){ const f=arr.find(x=>x.port===p); if(f) return {...f,hub:h}; } return null; }
+function feedInfo(b,p){
+  if(isGroup(b,p)){ const f=feedInfo(b,membersOf(b,p)[0]); return f?{...f,port:p,group:true}:null; }
+  for(const [h,arr] of Object.entries(BD(b).feeders)){ const f=arr.find(x=>x.port===p); if(f) return {...f,hub:h}; } return null;
+}
 const loadCall = (b,p) => feedInfo(b,p)?.hub || p;
 const lci = (b,p) => BD(b).pols.includes(loadCall(b,p)) ? ci(b,loadCall(b,p)) : undefined;
 const loadsIn = (b,p) => lci(b,p)!==undefined;
@@ -631,35 +659,37 @@ const isPod = (b,p) => BD(b).pods.includes(p);
 const podOK = (b,p,d) => ci(b,d) > lci(b,p);                                // POD must be later in the rotation
 const podsFor = (b,p) => BD(b).pods.filter(d=>podOK(b,p,d));
 const lastPod = b => Math.max(...BD(b).pods.map(d=>ci(b,d)));
-const feedersOf = (b,h) => (BD(b).feeders[h]||[]).map(f=>f.port);
+const feedersOf = (b,h) => [...new Set((BD(b).feeders[h]||[]).map(f=>aKey(b,f.port)))];   // shared-allocation ports appear once, as their group
 const K = (...a) => a.join('|');
 const pick = o => Object.fromEntries(DIMS.map(d=>[d.k,o[d.k]||0]));
 
-const base = (b,p,d) => vsum(S.alloc.filter(a=>a.b===b&&a.port===p&&a.pod===d).map(pick));
-const rel = (b,p,d) => pick(S.released[K(b,p,d)]||{});
-const claimedIn = (b,p,d) => vsum(S.claims.filter(c=>c.b===b&&c.port===p&&c.pod===d).map(pick));
+// Allocation, release, pool and bookings are all counted at the allocation level (aKey), so a YRD port sees the shared figures.
+const base = (b,p,d) => vsum(S.alloc.filter(a=>a.b===b&&a.port===aKey(b,p)&&a.pod===d).map(pick));
+const rel = (b,p,d) => pick(S.released[K(b,aKey(b,p),d)]||{});
+const claimedIn = (b,p,d) => vsum(S.claims.filter(c=>c.b===b&&aKey(b,c.port)===aKey(b,p)&&c.pod===d).map(pick));
 // Original allocation = base (set by HQ). Revised = original − released + taken from pool + approved additional loading.
-const extraIn = (b,p,d) => vsum((S.extra||[]).filter(x=>x.b===b&&x.port===p&&x.pod===d).map(pick));
+const extraIn = (b,p,d) => vsum((S.extra||[]).filter(x=>x.b===b&&aKey(b,x.port)===aKey(b,p)&&x.pod===d).map(pick));
 const eff = (b,p,d) => vadd(vadd(vsub(base(b,p,d),rel(b,p,d)),claimedIn(b,p,d)),extraIn(b,p,d));
 const baseP = (b,p) => vsum(BD(b).pods.map(d=>base(b,p,d)));
-const bksOf = (b,p,d) => S.bookings.filter(x=>x.b===b&&x.port===p&&(!d||x.pod===d));
+const bksOf = (b,p,d) => S.bookings.filter(x=>x.b===b&&aKey(b,x.port)===aKey(b,p)&&(!d||x.pod===d));
+const bksOwn = (b,p,d) => S.bookings.filter(x=>x.b===b&&x.port===p&&(!d||x.pod===d));      // one port's own loading
 const used = (b,p,d) => vsum(bksOf(b,p,d).map(pick));
 const effP = (b,p) => vsum(BD(b).pods.map(d=>eff(b,p,d)));
 const usedP = (b,p) => vsum(BD(b).pods.map(d=>used(b,p,d)));
 const relP = (b,p) => vsum(BD(b).pods.map(d=>rel(b,p,d)));
 const poolFrom = (b,u) => vsub(relP(b,u), vsum(S.claims.filter(c=>c.b===b&&c.from===u).map(pick)));
-const origins = b => [...new Set([...S.alloc.filter(a=>a.b===b).map(a=>a.port),...S.claims.filter(c=>c.b===b).map(c=>c.port)])];
+const origins = b => [...new Set([...S.alloc.filter(a=>a.b===b).map(a=>a.port),...S.claims.filter(c=>c.b===b).map(c=>aKey(b,c.port))])];
 const groupPorts = (b,h) => [h,...feedersOf(b,h)].filter(p=>origins(b).includes(p));
-const closedP = (b,p) => !!S.closed[K(b,p)];
+const closedP = (b,p) => !!S.closed[K(b,aKey(b,p))];
 // Rollover: cargo booked beyond the port's allocation, per POD, so one POD's balance never hides another's excess.
 const excessOf = (b,p) => vsum(BD(b).pods.map(d=>vpos(vsub(used(b,p,d),capOf(b,p,d)))));
 
 /* ---- #1 Booked vs loaded. Agents may overbook by the port's recent no-show rate, up to HQ's cap. ---- */
-const nsRate = (b,p) => { const rows=(history()[b+'|'+p]||[]).slice(-13), bk=rows.reduce((s,x)=>s+x.bt,0), ld=rows.reduce((s,x)=>s+x.lt,0); return bk?Math.max(0,1-ld/bk):0; };
+const nsRate = (b,p) => { const rows=(history()[b+'|'+aKey(b,p)]||[]).slice(-13), bk=rows.reduce((s,x)=>s+x.bt,0), ld=rows.reduce((s,x)=>s+x.lt,0); return bk?Math.max(0,1-ld/bk):0; };
 const allowance = (b,p) => ALL.ob&&ALL.ob.on ? Math.min(ALL.ob.cap, nsRate(b,p)) : 0;
 const capOf = (b,p,d) => { const e=eff(b,p,d), a=allowance(b,p); return Object.fromEntries(DIMS.map(x=>[x.k,Math.floor(e[x.k]*(1+a))])); };
 const bookLeft = (b,p,d) => vsub(capOf(b,p,d),used(b,p,d));
-const loadedOf = (b,p,d) => S.loaded&&S.loaded[K(b,p,d)] ? pick(S.loaded[K(b,p,d)]) : null;
+const loadedOf = (b,p,d) => S.loaded&&S.loaded[K(b,aKey(b,p),d)] ? pick(S.loaded[K(b,aKey(b,p),d)]) : null;
 const loadedP = (b,p) => { const l=BD(b).pods.map(d=>loadedOf(b,p,d)).filter(Boolean); return l.length?vsum(l):null; };
 const sailed = (b,p) => lci(b,p)!==undefined && TODAY >= E(lci(b,p));
 
@@ -704,17 +734,17 @@ function relNote(b,p,d){
     : `<span class="yn warn">These slots earn USD ${n0(r)}/TEU here. The best taker, ${nm(alt.q)} → ${sn(alt.e)}, pays only USD ${n0(alt.rate)}/TEU.</span>`;
 }
 /* ---- Forecast (port agent) and additional loading requests (HQ approves) ---- */
-const fc = (b,p,d) => pick(S.forecast[K(b,p,d)]||{});
-const hasFc = (b,p,d) => !!S.forecast[K(b,p,d)];
+const fc = (b,p,d) => pick(S.forecast[K(b,aKey(b,p),d)]||{});
+const hasFc = (b,p,d) => !!S.forecast[K(b,aKey(b,p),d)];
 const fcP = (b,p) => vsum(BD(b).pods.map(d=>fc(b,p,d)));
 const fcOver = (b,p) => vsum(BD(b).pods.map(d=>hasFc(b,p,d)?vpos(vsub(fc(b,p,d),eff(b,p,d))):Z()));
 const fcLockDate = (b,p) => addDays(E(lci(b,p)),-7);
 const fcLocked = (b,p) => TODAY >= fcLockDate(b,p);
-const reqs = (b,p,st) => S.requests.filter(r=>r.b===b&&(!p||r.port===p)&&(!st||r.status===st));
+const reqs = (b,p,st) => S.requests.filter(r=>r.b===b&&(!p||aKey(b,r.port)===aKey(b,p))&&(!st||r.status===st));
 const pendP = (b,p) => vsum(reqs(b,p,'pending').map(pick));
 
 /* ---- Reefer ---- */
-const rfA = (b,p) => S.rfAlloc[K(b,p)];                       // undefined = no port RF BSA, shares vessel plugs
+const rfA = (b,p) => S.rfAlloc[K(b,aKey(b,p))];                       // undefined = no port RF BSA, shares vessel plugs
 const rfUsed = (b,p) => sumf(bksOf(b,p),x=>x.rf);
 const rfTeuUsed = (b,p) => sumf(bksOf(b,p),x=>x.rfTeu);
 // Plugs on the leg sailing out of global call i: booked reefers on board + unused port RF BSA (held until the bound's last POD).
@@ -884,7 +914,7 @@ function roleOptions(){
     h+=`<optgroup label="${cfg.label} loading">`;
     cfg.pols.forEach(pol=>{
       if(!seen.has(pol)){ seen.add(pol); h+=`<option value="${pol}">Agent · ${sn(pol)}</option>`; }
-      feedersOf(b,pol).filter(p=>origins(b).includes(p)&&!seen.has(p)).forEach(f=>{ seen.add(f); h+=`<option value="${f}">Agent · ${nm(f)} (via ${sn(pol)})</option>`; });
+      (BD(b).feeders[pol]||[]).map(f=>f.port).filter(p=>origins(b).includes(aKey(b,p))&&!seen.has(p)).forEach(f=>{ seen.add(f); h+=`<option value="${f}">Agent · ${nm(f)} (via ${sn(pol)})</option>`; });
     });
     h+='</optgroup>';
   });
@@ -976,6 +1006,13 @@ function connections(){
     <div class="conn"><div class="conn-col"><span class="eyebrow">Loading via</span>${joins}</div><div class="conn-col"><span class="eyebrow">Onward from port of discharge</span>${leaves}</div></div></section>`;
 }
 
+// Each cell is a small grid: TEU and MT down, Allocation / Forecast / Booked across.
+function miniGrid(allocCell, f, hasF, u, e){
+  return `<table class="mini"><thead><tr><th></th><th>Allocation</th><th>Forecast</th><th>Booked</th></tr></thead><tbody>${DIMS.map(x=>`<tr><th>${x.u}</th>
+    <td>${allocCell(x)}</td>
+    <td class="${hasF&&f[x.k]>e[x.k]?'fo':''}">${hasF?n0(f[x.k]):'—'}</td>
+    <td class="${e[x.k]&&u[x.k]>e[x.k]?'ov':e[x.k]&&u[x.k]>=e[x.k]?'fullc':''}">${n0(u[x.k])}</td></tr>`).join('')}</tbody></table>`;
+}
 function portRow(b,p,opts){
   const {editable=false, actions=true} = opts||{};
   const fi=feedInfo(b,p), st=status(b,p);
@@ -983,13 +1020,12 @@ function portRow(b,p,opts){
     if(!podOK(b,p,d)) return `<td class="na" title="Not after this port in the rotation">·</td>`;
     const bs=base(b,p,d), e=eff(b,p,d), u=used(b,p,d), r=rel(b,p,d), c=claimedIn(b,p,d);
     if(!editable && !vany(bs) && !vany(c)) return `<td class="num muted">—</td>`;
-    const top = editable
-      ? `<span class="pair">${DIMS.map(x=>`<input type="number" min="0" step="1" class="${x.k}" id="al-${b}-${p}-${d}-${x.k}" data-alloc="${b}|${p}|${d}|${x.k}" value="${bs[x.k]}" aria-label="${nm(p)} to ${nm(d)} ${x.u}">`).join('')}</span>`
-      : `<span class="val"><b>${n0(e.teu)}</b> TEU · <span class="wt">${n0(e.mt)} MT</span></span>`;
+    const allocCell = x => editable
+      ? `<input type="number" min="0" step="1" class="${x.k}" id="al-${b}-${p}-${d}-${x.k}" data-alloc="${b}|${p}|${d}|${x.k}" value="${bs[x.k]}" aria-label="${nm(p)} to ${nm(d)} allocation ${x.u}">${e[x.k]!==bs[x.k]?`<small class="rev" title="Revised allocation">rev ${n0(e[x.k])}</small>`:''}`
+      : `<b>${n0(e[x.k])}</b>`;
     const pr=vsum(reqs(b,p,'pending').filter(q=>q.pod===d).map(pick));
-    const tags=[vany(r)?`<span class="tag rel">−${n0(r.teu)}/${n0(r.mt)} released</span>`:'', vany(c)?`<span class="tag pool">+${n0(c.teu)}/${n0(c.mt)} pool</span>`:'', vany(pr)?`<span class="tag req">+${n0(pr.teu)}/${n0(pr.mt)} requested</span>`:'', (()=>{ const xa=extraIn(b,p,d); return vany(xa)?`<span class="tag pool">+${n0(xa.teu)}/${n0(xa.mt)} approved</span>`:''; })()].filter(Boolean).join(' ');
-    const f=fc(b,p,d), hf=hasFc(b,p,d), fo=hf&&(f.teu>e.teu||f.mt>e.mt);
-    return `<td class="pod-cell num">${top}<span class="sub">${hf?`<span class="${fo?'fo':''}" title="Forecast">F ${n0(f.teu)} / ${n0(f.mt)}</span>`:'<span title="No forecast yet">F —</span>'} · <span title="Booked">B ${n0(u.teu)} / ${n0(u.mt)}</span>${(()=>{ const l=loadedOf(b,p,d); return l?` · <span class="ldd" title="Loaded">L ${n0(l.teu)} / ${n0(l.mt)}</span>`:''; })()}</span>${tags?`<span class="sub">${tags}</span>`:''}${editable&&role==='HQ'?podActions(b,p,d):''}</td>`;
+    const tags=[vany(r)?`<span class="tag rel">−${n0(r.teu)}/${n0(r.mt)} released</span>`:'', vany(c)?`<span class="tag pool">+${n0(c.teu)}/${n0(c.mt)} pool</span>`:'', vany(pr)?`<span class="tag req">+${n0(pr.teu)}/${n0(pr.mt)} requested</span>`:'', (()=>{ const xa=extraIn(b,p,d); return vany(xa)?`<span class="tag pool">+${n0(xa.teu)}/${n0(xa.mt)} approved</span>`:''; })(), (()=>{ const l=loadedOf(b,p,d); return l?`<span class="tag ldt">Loaded ${n0(l.teu)} / ${n0(l.mt)}</span>`:''; })()].filter(Boolean).join(' ');
+    return `<td class="pod-cell">${miniGrid(allocCell,fc(b,p,d),hasFc(b,p,d),u,e)}${tags?`<span class="sub">${tags}</span>`:''}${editable&&role==='HQ'?podActions(b,p,d):''}</td>`;
   }).join('');
   const e=effP(b,p), u=usedP(b,p), ra=rfA(b,p), ru=rfUsed(b,p), rt=rfTeuUsed(b,p);
   let act='';
@@ -1000,12 +1036,11 @@ function portRow(b,p,opts){
       : `<button type="button" class="danger" data-arm="${p}" ${vany(un)||(ra>ru)?'':'disabled'}>Release unused</button>`; }
   }
   return `<tr class="${fi?'feeder':''} ${p===role?'self':''}">
-    <td><span class="pname">${fi?'↳ ':''}${nm(p)} <code class="muted">${p}</code><small>${fi?`Loading via ${sn(fi.hub)} · ${fi.svc?fi.svc+' service':fi.land}`:'Vessel call · local cargo'}</small></span></td>
+    <td><span class="pname">${fi?'↳ ':''}${nm(p)} <code class="muted">${p}</code><small>${isGroup(b,p)?`Shared allocation · ${membersOf(b,p).map(nm).join(', ')} · via ${sn(fi.hub)}`:fi?`Loading via ${sn(fi.hub)} · ${fi.svc?fi.svc+' service':fi.land}`:'Vessel call · local cargo'}</small></span></td>
     ${cells}
-    ${(()=>{ const o=baseP(b,p), same=DIMS.every(x=>o[x.k]===e[x.k]);
-      return `<td class="num"><b>${n0(e.teu)}</b><br><span class="wt">${n0(e.mt)} MT</span>${same?'':`<br><small class="muted" title="Original allocation">orig ${n0(o.teu)} / ${n0(o.mt)}</small>`}</td>`; })()}
-    ${(()=>{ const F=fcP(b,p), fov=fcOver(b,p); return `<td class="num ${vany(fov)?'fo':''}">${vany(F)?`${n0(F.teu)}<br><span class="wt">${n0(F.mt)} MT</span>`:'<span class="muted">—</span>'}${fcLocked(b,p)?'<br><small class="muted">locked</small>':''}</td>`; })()}
-    <td class="num">${n0(u.teu)}<br><span class="wt">${n0(u.mt)} MT</span>${(()=>{ const L=loadedP(b,p); return L?`<br><small class="ldd">loaded ${n0(L.teu)}</small>`:''; })()}</td>
+    ${(()=>{ const o=baseP(b,p), F=fcP(b,p), L=loadedP(b,p);
+      const ac=x=>`<b>${n0(e[x.k])}</b>${o[x.k]!==e[x.k]?`<small class="rev" title="Original allocation">orig ${n0(o[x.k])}</small>`:''}`;
+      return `<td class="pod-cell tot-cell">${miniGrid(ac,F,vany(F),u,e)}<span class="sub">${fcLocked(b,p)?'<span class="tag rel">Forecast locked</span> ':''}${L?`<span class="tag ldt">Loaded ${n0(L.teu)} / ${n0(L.mt)}</span>`:''}</span></td>`; })()}
     ${role==='HQ'?(()=>{ const c=cmP(b,p); return `<td class="num">${c?`<b>${usd(c)}</b><br><small class="muted">${n0(c/Math.max(1,u.teu))}/TEU</small>`:'<span class="muted">—</span>'}</td>`; })():''}
     <td class="num rft">${ru||ra!==undefined?`${ru}${ra!==undefined?` / ${ra}`:''}<br><small>${rt} RF TEU</small>`:'<span class="muted">—</span>'}</td>
     <td class="util">${utilBlock(u,e)}</td>
@@ -1015,21 +1050,30 @@ function portRow(b,p,opts){
 
 function board(b, filter, opts){
   const actions = opts.actions!==false;
-  const cols = BD(b).pods.length+7+(actions?1:0)+(role==='HQ'?1:0);
-  let h=`<div class="tbl-wrap scrolly"><table><thead><tr><th>Port of load</th>${BD(b).pods.map(d=>`<th class="num">→ ${sn(d)}<small>${opts.editable?'TEU · MT':''}</small></th>`).join('')}<th class="num">Allocation<small>revised · orig</small></th><th class="num">Forecast</th><th class="num">Booked</th>${role==='HQ'?'<th class="num">Contribution<small>booked</small></th>':''}<th class="num">Reefer<small>plugs used / BSA</small></th><th>Utilisation</th><th>Status</th>${actions?'<th></th>':''}</tr></thead><tbody>`;
+  const cols = BD(b).pods.length+5+(actions?1:0)+(role==='HQ'?1:0);
+  let h=`<div class="tbl-wrap scrolly"><table class="board"><thead><tr><th>Port of load</th>${BD(b).pods.map(d=>`<th>→ ${sn(d)}</th>`).join('')}<th>Total</th>${role==='HQ'?'<th class="num">Contribution<small>booked</small></th>':''}<th class="num">Reefer<small>plugs used / BSA</small></th><th>Utilisation</th><th>Status</th>${actions?'<th></th>':''}</tr></thead><tbody>`;
   BD(b).pols.forEach(pol=>{
     const g=groupPorts(b,pol).filter(filter); if(!g.length) return;
     const all=groupPorts(b,pol), e=vsum(all.map(x=>effP(b,x))), u=vsum(all.map(x=>usedP(b,x)));
     // Ports loading via this call fold under it; open on request, or when the viewer / an open review box is inside.
     const via=all.filter(x=>x!==pol), key=b+'|'+pol;
-    const open = expanded.has(key) || (role!=='HQ' && via.includes(role)) || via.some(x=>editCell&&editCell.startsWith(b+'|'+x+'|'));
+    const open = expanded.has(key) || (role!=='HQ' && via.includes(aKey(b,role))) || via.some(x=>editCell&&editCell.startsWith(b+'|'+x+'|'));
+    const nVia = via.reduce((n,x)=>n+(isGroup(b,x)?membersOf(b,x).length:1),0);
     const pq=vsum(via.flatMap(x=>reqs(b,x,'pending')).map(pick)), fo=via.filter(x=>vany(fcOver(b,x))).length;
     const badges=open?'':[vany(pq)?`<span class="chip warnc">${n0(pq.teu)} TEU awaiting HQ</span>`:'', fo?`<span class="chip warnc">${fo} forecast over</span>`:''].join(' ');
-    const tog=via.length?`<button type="button" class="tog" data-tog="${key}" aria-expanded="${open}">${open?'▾ Hide':'▸ Show'} ${via.length} port${via.length>1?'s':''} loading via ${sn(pol)}</button>`:'';
+    const tog=via.length?`<button type="button" class="tog" data-tog="${key}" aria-expanded="${open}">${open?'▾ Hide':'▸ Show'} ${nVia} port${nVia>1?'s':''} loading via ${sn(pol)}</button>`:'';
     h+=`<tr class="grp"><td colspan="${cols}"><span class="gl"><b>${nm(pol)}</b>${tog}${badges} <span class="gsum">· cut-off ${cutoff(E(ci(b,pol)))} · loads here ${n0(u.teu)} / ${n0(e.teu)} TEU · ${n0(u.mt)} / ${n0(e.mt)} MT</span></span></td></tr>`;
-    g.filter(p=>p===pol||open).forEach(p=>h+=portRow(b,p,opts));
+    g.filter(p=>p===pol||open).forEach(p=>{ h+=portRow(b,p,opts); if(isGroup(b,p)) h+=membersOf(b,p).map(m=>loadRow(b,m,actions)).join(''); });
   });
   return h+'</tbody></table></div>';
+}
+// A port inside a shared allocation: its own loading only, no allocation of its own.
+function loadRow(b,m,actions){
+  const own=d=>vsum(bksOwn(b,m,d).map(pick));
+  const cell=u=>vany(u)?`<span class="ld">Booked <b>${n0(u.teu)}</b> TEU · ${n0(u.mt)} MT</span>`:'<span class="muted">—</span>';
+  return `<tr class="loadrow ${m===role?'self':''}"><td><span class="pname">${nm(m)} <code class="muted">${m}</code><small>Loading only · books against the shared ${nm(aKey(b,m))} allocation</small></span></td>
+    ${BD(b).pods.map(d=>podOK(b,m,d)?`<td class="num">${cell(own(d))}</td>`:'<td class="na">·</td>').join('')}
+    <td class="num">${cell(own())}</td><td colspan="${3+(role==='HQ'?1:0)+(actions?1:0)}"></td></tr>`;
 }
 
 function dischargePlan(b, bks, title, note, onlyPod){
@@ -1095,7 +1139,7 @@ function podActions(b,p,d){
   if(pend.length) h+= editCell===key ? decisionEditor(b,p,d,'ap',true) : `<button type="button" class="okb sm" data-opencell="${key}">Review +${n0(vsum(pend.map(pick)).teu)} TEU</button>`;
   if(vany(un) && !closedP(b,p)) h+= armed==='rp:'+key
     ? relForm(key,un,'hq')
-    : `<button type="button" class="ghost sm relb" data-arm="rp:${key}" title="Release unused balance to ${nm(d)} only">Release ${n0(un.teu)}</button>`;
+    : `<button type="button" class="ghost sm relb" data-arm="rp:${key}" title="Release unused balance to ${nm(d)} only">Release ${un.teu?n0(un.teu)+' TEU':n0(un.mt)+' MT'}</button>`;
   return h?`<span class="cell-acts">${h}</span>`:'';
 }
 
@@ -1116,7 +1160,7 @@ function forecastPanel(b,p){
 }
 
 function myRequests(b,p){
-  const list=reqs(b,p); if(!list.length) return '';
+  const list=S.requests.filter(r=>r.b===b&&r.port===p); if(!list.length) return '';
   return `<h3>Additional loading requests</h3><div class="tbl-wrap"><table><thead><tr><th>Ref</th><th>POD</th><th class="num">TEU</th><th class="num">MT</th><th>Status</th><th></th></tr></thead><tbody>${
     list.slice().reverse().map(r=>`<tr><td class="mono">${esc(r.ref)}</td><td>${sn(r.pod)}${r.fpd!==r.pod?` → ${nm(r.fpd)}`:''}</td><td class="num">${n0(r.teu)}</td><td class="num wt">${n0(r.mt)}</td>
       <td>${(()=>{ const [c,t]=statusChip(r); return `<span class="chip ${c}">${t}</span>`; })()}</td>
@@ -1371,6 +1415,7 @@ function agentView(){
       <div class="bigs"><span class="big">${n0(Math.max(0,left.teu))} <small>TEU left</small></span><span class="big wt">${n0(Math.max(0,left.mt))} <small>MT left</small></span></div>
       ${meter(u.teu,e.teu)}${meter(u.mt,e.mt,'mtm')}
       <span class="ln">Booked ${qty(u)} of ${qty(e)}</span>
+      ${aKey(b,p)!==p?`<span class="ln">Shared ${nm(aKey(b,p))} allocation with ${membersOf(b,aKey(b,p)).filter(m=>m!==p).map(nm).join(', ')}. Your port booked ${qty(vsum(bksOwn(b,p,d).map(pick)))}.</span>`:''}
       ${allowance(b,p)?`<span class="ln">You may book up to <b>${n0(capOf(b,p,d).teu)} TEU</b>: +${pct(allowance(b,p))} allowance for your port's usual no-shows.</span>`:''}
       <span class="ln">Original ${n0(bs.teu)} TEU / ${n0(bs.mt)} MT${(()=>{ const xa=extraIn(b,p,d); return vany(xa)?` · +${n0(xa.teu)}/${n0(xa.mt)} approved`:''; })()}${vany(c)?` · +${n0(c.teu)}/${n0(c.mt)} from pool`:''}${vany(r)?` · −${n0(r.teu)}/${n0(r.mt)} released`:''}</span>
       ${(()=>{ const un=vpos(vsub(e,u)), key=K(b,p,d); if(closed||!vany(un)) return '';
@@ -1533,7 +1578,7 @@ function decidePod(b,p,d,A,reason){
     let rf=r.rf?Math.min(r.rf,Math.round(r.rf*t/Math.max(1,r.teu))):0;
     if(rf){ const a=rfA(b,p), avail=a!==undefined?a-rfUsed(b,p):rfRoom(b,p,d); if(rf>avail){ rf=Math.max(0,avail); } }
     const bk={teu:t, mt:t>=r.teu?r.mt:Math.round(t*per)};
-    if(t>0){ S.bookings.push({id:uid(),b,ref:t>=r.teu?r.ref:r.ref+'-P',port:p,pod:d,fpd:r.fpd,...bk,
+    if(t>0){ S.bookings.push({id:uid(),b,ref:t>=r.teu?r.ref:r.ref+'-P',port:r.port,pod:d,fpd:r.fpd,...bk,
       ...(t>=r.teu?{e20:r.e20,e40:r.e40,ehc:r.ehc,dg:r.dg||0,dgc:r.dgc,oog:r.oog||0,lost:r.lost||0}:{dg:0,oog:0,lost:0}),rf,rfTeu:rf?Math.min(r.rfTeu||rf,Math.max(rf,Math.round((r.rfTeu||0)*t/r.teu))):0}); left=vpos(vsub(left,bk)); }
     r.booked=bk; r.status = t>=r.teu?'approved':t>0?'partial':'rejected';
     notify(r, r.status, {granted:first?A:null, booked:bk}, reason); first=false;
@@ -1546,6 +1591,7 @@ function decidePod(b,p,d,A,reason){
 }
 // Release one POD's unused balance to the pool. The port stays open for its other PODs.
 function releasePod(b,p,d,amt,reason){
+  p=aKey(b,p);
   const max=vpos(vsub(eff(b,p,d),used(b,p,d)));
   const un=amt?Object.fromEntries(DIMS.map(x=>[x.k,Math.min(max[x.k],Math.max(0,amt[x.k]||0))])):max;
   if(!vany(un)){ armed=null; return toast('Enter how much to release',true); }
@@ -1582,6 +1628,7 @@ function alertsCore(){
 }
 
 function release(p,reason){
+  p=aKey(B,p);                                                   // a YRD port releases the shared allocation
   let tot=Z();
   BOUNDS[B].pods.forEach(d=>{ const un=vpos(vsub(eff(B,p,d),used(B,p,d))); if(vany(un)){ S.released[K(B,p,d)]=vadd(rel(B,p,d),un); tot=vadd(tot,un);} });
   let plugs=0; const a=rfA(B,p); if(a!==undefined){ plugs=Math.max(0,a-rfUsed(B,p)); S.rfAlloc[K(B,p)]=rfUsed(B,p); }
@@ -1622,7 +1669,7 @@ function applyRules(){
     S.ruleRuns[K(B,d.p,d.i)]=true; n++; });
   return n;
 }
-function R_markAll(p){ ALL.rules.stages.forEach((_,i)=>S.ruleRuns[K(B,p,i)]=true); }
+function R_markAll(p){ ALL.rules.stages.forEach((_,i)=>S.ruleRuns[K(B,aKey(B,p),i)]=true); }
 function rulesPanel(){
   const R=ALL.rules, due=rulesDue();
   return `<section class="panel" data-nav="Release rules"><div class="ph"><div><h2>Release rules</h2>
@@ -1777,7 +1824,7 @@ function iaWeekPanel(){
 function iaPanel(){
   const b=B, dests=BD(b).pods.flatMap(pod=>(BD(b).onward[pod]||[]).filter(f=>f.svc).map(f=>({pod,f})));
   if(!dests.length) return '';
-  const ports=[]; BD(b).pols.forEach(pol=>groupPorts(b,pol).forEach(p=>ports.push(p)));
+  const ports=[]; BD(b).pols.forEach(pol=>groupPorts(b,pol).forEach(p=>(isGroup(b,p)?membersOf(b,p):[p]).forEach(x=>ports.push(x))));   // onward limits are per actual port
   const band=(u,c)=>{ if(!c) return ''; const r=Math.max(...DIMS.filter(x=>c[x.k]!=null&&c[x.k]>0).map(x=>u[x.k]/c[x.k]),0); return r>1?'hm3':r>=0.9?'hm2':'hm1'; };
   const capIn=(id,key,c,label)=>DIMS.map(x=>`<input type="number" min="0" class="${x.k}" id="${id}-${x.k}" data-${key}="${label}|${x.k}" value="${c&&c[x.k]!=null?c[x.k]:''}" placeholder="${x.u}" aria-label="${x.u} limit">`).join('');
   const svcs=[]; dests.forEach(({pod,f})=>{ if(!svcs.some(s=>s.pod===pod&&s.svc===f.svc)) svcs.push({pod,svc:f.svc,to:dests.filter(x=>x.pod===pod&&x.f.svc===f.svc).map(x=>x.f.port)}); });
@@ -2068,8 +2115,8 @@ app.addEventListener('click',e=>{
     let n=0;
     podsFor(B,role).forEach(d=>{
       const t=document.getElementById(`fc-${d}-teu`).value.trim(), m=document.getElementById(`fc-${d}-mt`).value.trim();
-      if(t===''&&m===''){ delete S.forecast[K(B,role,d)]; return; }
-      S.forecast[K(B,role,d)]={teu:Math.max(0,parseInt(t,10)||0), mt:Math.max(0,parseFloat(m)||0)}; n++;
+      if(t===''&&m===''){ delete S.forecast[K(B,aKey(B,role),d)]; return; }
+      S.forecast[K(B,aKey(B,role),d)]={teu:Math.max(0,parseInt(t,10)||0), mt:Math.max(0,parseFloat(m)||0)}; n++;
     });
     addLog(`${nm(role)} updated its forecast (${n} discharge port${n===1?'':'s'}).`);
     render(); toast('Forecast saved'); return;
