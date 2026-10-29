@@ -372,7 +372,12 @@ table.board tr.grp td{padding:5px 8px}
 .cell-acts.open{top:calc(100% - 4px);bottom:auto;right:0;z-index:30;box-shadow:0 10px 30px rgba(0,0,0,.25);border-radius:8px}
 .cell-acts .relb{background:var(--surface)}
 .mk{display:inline-grid;place-items:center;width:14px;height:14px;border-radius:4px;font-size:.7rem;font-weight:800;margin-right:3px}
-.mk.pool{background:var(--accent-soft);color:var(--accent)} .mk.rel{background:var(--surface-2);color:var(--muted);border:1px solid var(--line)}
+.mk.pool{background:var(--accent-soft);color:var(--accent)}
+.mk.ovr{background:var(--warn-soft);color:var(--warn)}
+table.tmpl input{width:4.4em;font-size:.8rem;padding:3px 5px} table.tmpl input.mt{width:5.2em}
+table.tmpl .pair{display:flex;gap:4px;justify-content:flex-end}
+.tmpl-apply{display:flex;flex-direction:column;gap:10px;border-top:1px solid var(--line);padding-top:12px}
+.tmpl-status{display:flex;flex-wrap:wrap;gap:6px;align-items:center;font-size:.84rem} .mk.rel{background:var(--surface-2);color:var(--muted);border:1px solid var(--line)}
 .bh{display:flex;align-items:baseline;gap:6px 14px;flex-wrap:wrap}
 .info{font-size:.78rem;color:var(--accent);cursor:help;font-weight:600}
 .legend{font-size:.74rem;color:var(--muted);display:inline-flex;align-items:center;gap:4px}
@@ -697,6 +702,9 @@ Object.values(ALL.voyages).forEach(s=>{ s.forecast=s.forecast||{}; s.requests=s.
   s.contracts=s.contracts||[]; s.ruleRuns=s.ruleRuns||{}; s.sched=s.sched||{omit:{},delay:{},moved:{},blank:false}; s.onCap=s.onCap||{}; s.svcCap=s.svcCap||{}; });
 ALL.ob=ALL.ob||{on:true, cap:0.1};
 ALL.rules=ALL.rules||{on:true, stages:[{days:3,under:0.7,pct:0.5},{days:0,under:1,pct:1}]};
+// Allocation template per bound: the standard weekly allocation, built from the first vessel if none saved yet.
+if(!ALL.tmpl){ ALL.tmpl={WB:{},EB:{}}; ALL.voyages[VOYAGES[0].id].alloc.forEach(a=>{ ALL.tmpl[a.b][a.port+'|'+a.pod]={teu:a.teu,mt:a.mt}; }); }
+Object.values(ALL.voyages).forEach(s=>{ s.ovr=s.ovr||{}; });   // cells Trade changed on one vessel, away from the template
 S=ALL.voyages[V];
 const TODAY='2026-10-28';                                        // sample "today" so cut-offs and forecast locks show realistically
 let askDraft=null, editCell=null;
@@ -1106,7 +1114,8 @@ function portRow(b,p,opts){
     // Detail that changes the revised allocation goes in the cell's tooltip; loaded stays visible.
     const xa=extraIn(b,p,d), l=loadedOf(b,p,d);
     const tip=[vany(r)?`Released ${tot(r)}`:'', vany(c)?`Taken from pool ${tot(c)}`:'', vany(xa)?`Approved extra ${tot(xa)}`:'', vany(pr)?`Requested ${tot(pr)}`:''].filter(Boolean).join(' · ');
-    const marks=[vany(r)?'<span class="mk rel" aria-hidden="true">−</span>':'', vany(c)||vany(xa)?'<span class="mk pool" aria-hidden="true">+</span>':''].join('');
+    const ov=S.ovr&&S.ovr[K(b,aKey(b,p),d)];
+    const marks=[ov?'<span class="mk ovr" title="Changed from template on this vessel" aria-hidden="true">✎</span>':'', vany(r)?'<span class="mk rel" aria-hidden="true">−</span>':'', vany(c)||vany(xa)?'<span class="mk pool" aria-hidden="true">+</span>':''].join('');
     return `<td class="pod-cell"${tip?` title="${tip}"`:''}>${miniGrid(allocCell,fc(b,p,d),hasFc(b,p,d),u,e)}${l||marks?`<span class="sub">${marks}${l?`<span class="tag ldt">Loaded ${n0(l.teu)} / ${n0(l.mt)}</span>`:''}</span>`:''}${editable&&role==='HQ'?podActions(b,p,d):''}</td>`;
   }).join('');
   const e=effP(b,p), u=usedP(b,p), ra=rfA(b,p), ru=rfUsed(b,p), rt=rfTeuUsed(b,p);
@@ -1427,6 +1436,7 @@ function hqView(){
       <div class="acts"><button type="button" class="ghost sm" data-togall="1">Expand all</button><button type="button" class="ghost sm" data-togall="0">Collapse all</button></div></div>
       ${board(b,()=>true,{editable:true})}
     </section>
+    ${tmplPanel()}
 
     ${heatPanel()}
     ${requestsPanel()}
@@ -1934,6 +1944,62 @@ function iaPanel(){
   </section>`;
 }
 
+/* ================= Allocation template =================
+   One standard weekly allocation per bound. Applying it fills the original allocation on the chosen vessels.
+   Cells Trade changed on a vessel (S.ovr) are kept unless "replace" is ticked; nothing goes below what is already booked. */
+const tmplRows = b => { const r=[]; BD(b).pols.forEach(pol=>{ r.push(pol); feedersOf(b,pol).forEach(f=>r.push(f)); }); return r; };
+const tv = (b,p,d) => (ALL.tmpl[b]||{})[p+'|'+d]||{teu:0,mt:0};
+function applyTemplate(b,ids,replace){
+  const res={vessels:0,set:0,kept:0,raised:0};
+  ids.forEach(id=>withVoy(id,()=>{
+    if(S.sched.blank) return; res.vessels++;
+    const keys=new Set([...Object.keys(ALL.tmpl[b]||{}), ...S.alloc.filter(a=>a.b===b).map(a=>a.port+'|'+a.pod)]);
+    keys.forEach(k=>{
+      const [p,d]=k.split('|');
+      if(!replace && S.ovr[K(b,p,d)]){ res.kept++; return; }
+      const t=tv(b,p,d), u=used(b,p,d), cur=base(b,p,d);
+      // never below what is already booked (after releases and pool, booked counts against revised; keep it simple: original ≥ booked − extras)
+      const floor=vpos(vsub(vsub(u,claimedIn(b,p,d)),extraIn(b,p,d)));
+      const next={teu:Math.max(t.teu,floor.teu), mt:Math.max(t.mt,floor.mt)};
+      if(next.teu>t.teu||next.mt>t.mt) res.raised++;
+      if(next.teu!==cur.teu||next.mt!==cur.mt) res.set++;
+      S.alloc=S.alloc.filter(a=>!(a.b===b&&a.port===p&&a.pod===d)); if(vany(next)) S.alloc.push({b,port:p,pod:d,...next});
+      if(next.teu===t.teu&&next.mt===t.mt) delete S.ovr[K(b,p,d)]; else S.ovr[K(b,p,d)]=true;
+    });
+  }));
+  return res;
+}
+let tmplFrom=null, tmplTo=null;
+function tmplPanel(){
+  const b=B, pods=BD(b).pods, rows=tmplRows(b);
+  const tTot=vsum(Object.values(ALL.tmpl[b]||{}).map(pick));
+  const iV=voyIdx(); if(tmplFrom===null||!VOYAGES[tmplFrom]) tmplFrom=Math.min(iV+1,VOYAGES.length-1); if(tmplTo===null||!VOYAGES[tmplTo]) tmplTo=VOYAGES.length-1;
+  const body=rows.map(p=>{ const fi=feedInfo(b,p), rt=vsum(pods.map(d=>tv(b,p,d)));
+    return `<tr class="${fi?'feeder':''}"><td><span class="pname">${fi?'↳ ':''}${nm(p)}<small>${isGroup(b,p)?'Shared allocation':fi?`via ${sn(fi.hub)}`:'Vessel call'}</small></span></td>
+      ${pods.map(d=>podOK(b,p,d)?`<td class="num"><span class="pair">${DIMS.map(x=>`<input type="number" min="0" step="1" class="${x.k}" id="tp-${b}-${p}-${d}-${x.k}" data-tmpl="${b}|${p}|${d}|${x.k}" value="${tv(b,p,d)[x.k]||''}" placeholder="0" aria-label="Template ${nm(p)} to ${nm(d)} ${x.u}">`).join('')}</span></td>`:'<td class="na">·</td>').join('')}
+      <td class="num"><b>${n0(rt.teu)}</b><br><span class="wt">${n0(rt.mt)} MT</span></td></tr>`; }).join('');
+  const colTot=pods.map(d=>vsum(rows.map(p=>tv(b,p,d))));
+  const vOpts=sel=>VOYAGES.map((v,i)=>`<option value="${i}" ${i===sel?'selected':''}>${v.vessel} ${v.id}</option>`).join('');
+  const status=VOYAGES.map(v=>{ const s=ALL.voyages[v.id], n=Object.keys(s.ovr||{}).filter(k=>k.startsWith(b+'|')).length;
+    return `<span class="chip ${s.sched.blank?'closed':n?'warnc':'okc'}" title="${n?n+' cell(s) changed on this vessel; kept when the template is applied':''}">${v.id}${b==='WB'?'W':'E'} · ${s.sched.blank?'blanked':n?`${n} change${n>1?'s':''} from template`:'follows template'}</span>`; }).join(' ');
+  return `<section class="panel" data-nav="Allocation template"><div class="ph"><div><h2>Allocation template · ${BD(b).label}</h2>
+    <p>The standard weekly allocation. Key it once here and apply it to the vessels below; Trade can still change any vessel on the board. Changes made on a vessel are marked ✎ and kept when the template is applied again, unless you choose to replace them. Nothing is set below what a vessel has already booked.</p></div>
+    <span class="chip ${tTot.teu>VESSEL.cap.teu||tTot.mt>VESSEL.cap.mt?'over':'open'}">Template ${tot(tTot)} · capacity ${tot(VESSEL.cap)}</span></div>
+    <div class="tbl-wrap"><table class="tmpl"><thead><tr><th>Port of load</th>${pods.map(d=>`<th class="num">→ ${sn(d)}<small>TEU · MT</small></th>`).join('')}<th class="num">Total</th></tr></thead><tbody>${body}
+      <tr class="sec"><td>Total</td>${colTot.map(v=>`<td class="num"><b>${n0(v.teu)}</b> · <span class="wt">${n0(v.mt)}</span></td>`).join('')}<td class="num"><b>${n0(tTot.teu)}</b><br><span class="wt">${n0(tTot.mt)} MT</span></td></tr></tbody></table></div>
+    <div class="tmpl-apply">
+      <div class="form">
+        <div class="field"><label for="tp-from">Apply from</label><select id="tp-from">${vOpts(tmplFrom)}</select></div>
+        <div class="field"><label for="tp-to">to</label><select id="tp-to">${vOpts(tmplTo)}</select></div>
+        <label class="chk" for="tp-replace"><input type="checkbox" id="tp-replace"> Replace vessel-specific changes too</label>
+        <button type="button" class="primary" data-applytmpl>Apply template</button>
+        <button type="button" class="editb" data-savetmpl>Save ${curVoy().vessel} ${V} as template</button>
+      </div>
+      <div class="tmpl-status"><span class="muted">Vessels:</span> ${status}</div>
+    </div>
+  </section>`;
+}
+
 // Room to protect on a port pair: its revised allocation less what other accounts already hold there.
 const ctRoom = (b,p,d,exceptId) => vsub(eff(b,p,d), vsum(S.contracts.filter(c=>c.b===b&&c.port===aKey(b,p)&&c.pod===d&&c.id!==exceptId).map(pick)));
 function contractPanel(){
@@ -1990,7 +2056,7 @@ function heatPanel(){
 // Overview first (Planning: next vessels), then down into one vessel (Allocation). Today's list lives in the bell.
 const WS_HQ=[{id:'plan',label:'Planning'},{id:'alloc',label:'Allocation'},{id:'accounts',label:'Space protection'},{id:'conn',label:'Connections'},{id:'perf',label:'Performance'},{id:'rules',label:'Rules & capacity'}];
 const WS_AG=[{id:'home',label:'My port'},{id:'book',label:'Book'},{id:'forecast',label:'Forecast'},{id:'pool',label:'Balance pool'},{id:'cargo',label:'My cargo'}];
-const WS_MAP_HQ={'Allocation board':'alloc','Additional loading':'alloc','Release allocation':'alloc','Balance pool':'alloc','Space protection':'accounts',
+const WS_MAP_HQ={'Allocation board':'alloc','Allocation template':'alloc','Additional loading':'alloc','Release allocation':'alloc','Balance pool':'alloc','Space protection':'accounts',
   'Heatmap':'plan','Next vessels':'plan','Schedule changes':'plan','Connections':'conn','Intra-Asia onward':'conn','First-leg delays':'conn','Discharge plan':'conn',
   'Load list':'perf','Port performance':'perf','Release rules':'rules','Reefer plug BSA':'rules','Equipment & special cargo':'rules'};
 const WS_MAP_AG={'My allocation':'home','Book cargo':'book','Forecast':'forecast','Balance you can use':'pool','Ports ahead of you':'pool','First-leg delays':'cargo','Next vessels':'cargo'};
@@ -2306,6 +2372,17 @@ app.addEventListener('click',e=>{
   if('blank' in btn.dataset){ const r=moveToNext(()=>true); if(r.err) return toast(r.err,true);
     S.sched.blank=true; armed=null; addLog(`${curVoy().vessel} ${V} blanked. ${r.nb} bookings (${tot(r.t)}) and all allocation moved to ${r.to}.`);
     render(); toast(`Sailing blanked. ${r.nb} bookings moved to ${r.to}`); return; }
+  if('applytmpl' in btn.dataset){
+    const ids=VOYAGES.slice(tmplFrom,tmplTo+1).map(v=>v.id), rep=document.getElementById('tp-replace').checked;
+    const r=applyTemplate(B,ids,rep);
+    addLog(`HQ applied the ${BD(B).label.toLowerCase()} template to ${ids.join(', ')}: ${r.set} cells set${r.kept?`, ${r.kept} vessel changes kept`:''}${r.raised?`, ${r.raised} raised to what is already booked`:''}.`);
+    render(); toast(`Template applied to ${r.vessels} vessel${r.vessels===1?'':'s'}: ${r.set} cells set${r.kept?`, ${r.kept} changes kept`:''}${r.raised?`, ${r.raised} kept at booked`:''}`); return;
+  }
+  if('savetmpl' in btn.dataset){
+    const t={}; S.alloc.filter(a=>a.b===B).forEach(a=>{ t[a.port+'|'+a.pod]={teu:a.teu,mt:a.mt}; });
+    ALL.tmpl[B]=t; Object.keys(S.ovr).filter(k=>k.startsWith(B+'|')).forEach(k=>delete S.ovr[k]);
+    addLog(`HQ saved ${curVoy().vessel} ${V} ${BD(B).label.toLowerCase()} allocation as the template.`); render(); toast('Saved as template'); return;
+  }
   if(btn.dataset.editct){ ctEdit=btn.dataset.editct; render(); return; }
   if('cancelct' in btn.dataset){ ctEdit=null; render(); return; }
   if(btn.dataset.savect){
@@ -2350,6 +2427,7 @@ app.addEventListener('change',e=>{
     const after=vadd(vsub(next,rel(b,p,d)),claimedIn(b,p,d)), u=used(b,p,d);
     if(after[dim] < u[dim]){ t.value=cur[dim]; return toast(`${nm(p)} already has ${n0(u[dim])} ${DIMS.find(x=>x.k===dim).u} booked to ${nm(d)}`,true); }
     S.alloc=S.alloc.filter(a=>!(a.b===b&&a.port===p&&a.pod===d)); if(vany(next)) S.alloc.push({b,port:p,pod:d,...next});
+    { const t=ALL.tmpl[b][p+'|'+d]||{teu:0,mt:0}; if(t.teu===next.teu&&t.mt===next.mt) delete S.ovr[K(b,p,d)]; else S.ovr[K(b,p,d)]=true; }   // mark changes away from the template
     addLog(`HQ set ${nm(p)} → ${sn(d)} to ${n0(next.teu)} TEU / ${n0(next.mt)} MT.`);
     render(); toast(legOver()?'Saved. The vessel is now over capacity on a leg.':`Saved ${nm(p)} → ${sn(d)}`, legOver());
   }
@@ -2382,6 +2460,14 @@ app.addEventListener('change',e=>{
     render(); toast('Intra-Asia limit saved'); return;
   }
   if(t.id==='ia-sel'){ iaSel=t.value; render(); return; }
+  if(t.dataset.tmpl){
+    const [b,p,d,dim]=t.dataset.tmpl.split('|'), k=p+'|'+d, c={...(ALL.tmpl[b][k]||{teu:0,mt:0})};
+    c[dim]=Math.max(0,parseFloat(t.value)||0);
+    if(!c.teu&&!c.mt) delete ALL.tmpl[b][k]; else ALL.tmpl[b][k]=c;
+    addLog(`HQ set template ${nm(p)} → ${sn(d)} to ${tot(c)}.`); render(); toast('Template updated. Apply it to vessels when ready.'); return;
+  }
+  if(t.id==='tp-from'){ tmplFrom=+t.value; if(tmplTo<tmplFrom) tmplTo=tmplFrom; render(); return; }
+  if(t.id==='tp-to'){ tmplTo=+t.value; if(tmplFrom>tmplTo) tmplFrom=tmplTo; render(); return; }
 });
 app.addEventListener('submit',e=>{
   e.preventDefault();
