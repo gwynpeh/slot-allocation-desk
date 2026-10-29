@@ -311,7 +311,9 @@ button.editb:hover{background:var(--accent-soft)}
 #ws a.on{border-color:var(--accent);background:var(--accent-soft);box-shadow:0 0 14px var(--glow)}
 #ws .badge{min-width:20px;height:20px;padding:0 6px;border-radius:99px;font-size:.72rem;font-weight:700;display:inline-grid;place-items:center;background:var(--warn-soft);color:var(--warn)}
 #ws .badge.act{background:var(--bad);color:#fff}
-#nav a{font-size:.82rem;padding:6px 10px}
+#nav.ws-sub{margin:2px 0 6px 16px;padding-left:10px;border-left:2px solid var(--line);gap:2px}
+#nav a{font-size:.82rem;padding:5px 10px;font-weight:500;justify-content:flex-start}
+#nav a.on{box-shadow:none;background:transparent;border-color:transparent;color:var(--accent);font-weight:700}
 @media (max-width:900px){#ws{flex-direction:row;flex-wrap:wrap}}
 /* Today */
 .today .phase{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px}
@@ -416,8 +418,6 @@ label.chk{display:flex;gap:6px;align-items:center;font-size:.85rem;font-weight:6
     <div class="logo"><svg class="pil-logo" id="pil-logo" viewBox="0 0 170 53" role="img" aria-label="PIL"></svg><span class="muted" style="font-size:.72rem;line-height:1.2">Trade<br>Allocation</span></div>
     <div class="side-sec">Workspaces</div>
     <nav id="ws" aria-label="Workspaces"></nav>
-    <div class="side-sec">On this screen</div>
-    <nav id="nav" aria-label="Sections on this screen"></nav>
     <div class="side-sec">Voyage</div>
     <div class="field"><label for="voy">Vessel</label><select id="voy"></select></div>
     <div class="field"><label>Bound</label>
@@ -2078,7 +2078,8 @@ function applyWorkspace(){
   const vh=app.querySelector('.voyage'); if(vh) vh.hidden = cur==='alloc';     // the board carries the vessel name itself
   const n=id=>LAST_ITEMS.filter(i=>i.sev!=='info'&&(id===wsList()[0].id||i.ws===id)).length;
   document.getElementById('ws').innerHTML = wsList().map(w=>{ const c=n(w.id);
-    return `<a href="#" data-wsgo="${w.id}" class="${w.id===cur?'on':''}">${w.label}${c?`<span class="badge ${LAST_ITEMS.some(i=>i.sev==='act'&&(w.id===wsList()[0].id||i.ws===w.id))?'act':''}">${c}</span>`:''}</a>`; }).join('');
+    return `<a href="#" data-wsgo="${w.id}" class="${w.id===cur?'on':''}">${w.label}${c?`<span class="badge ${LAST_ITEMS.some(i=>i.sev==='act'&&(w.id===wsList()[0].id||i.ws===w.id))?'act':''}">${c}</span>`:''}</a>`
+      + (w.id===cur?'<nav id="nav" class="ws-sub" aria-label="Sub views"></nav>':''); }).join('');   // sub views sit under the open workspace
 }
 
 /* theme toggle (Dark / Light) — follows system until the user picks */
@@ -2100,7 +2101,7 @@ function goWs(w,nav){
   if(el) el.scrollIntoView({block:'start'}); else window.scrollTo({top:0});
 }
 document.getElementById('ws').addEventListener('click',e=>{ const a=e.target.closest('a[data-wsgo]'); if(!a) return; e.preventDefault(); goWs(a.dataset.wsgo,''); });
-document.getElementById('nav').addEventListener('click',e=>{ const a=e.target.closest('a[data-go]'); if(!a) return; e.preventDefault(); document.getElementById(a.dataset.go)?.scrollIntoView({behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth',block:'start'}); });
+document.getElementById('ws').addEventListener('click',e=>{ const a=e.target.closest('a[data-go]'); if(!a) return; e.preventDefault(); document.getElementById(a.dataset.go)?.scrollIntoView({behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth',block:'start'}); });
 let navTick=false;
 window.addEventListener('scroll',()=>{ if(navTick) return; navTick=true; requestAnimationFrame(()=>{ navTick=false;
   const secs=navSecs(); let cur=secs[0];
