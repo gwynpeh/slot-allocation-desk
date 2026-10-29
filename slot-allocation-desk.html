@@ -1421,7 +1421,7 @@ function hqView(){
     <section class="panel board-panel" data-nav="Allocation board"><div class="ph"><div class="bh"><h2>${BD(b).label} allocation board · ${curVoy().vessel} ${vtag()}</h2><span class="sample">Sample · today ${fmt(TODAY)}</span>
       <span class="info" tabindex="0" title="Type allocation in TEU and MT for each port of load and discharge. Each cell shows Allocation / Forecast / Booked. Ports loading via a call fold under it; the YRD ports share one allocation. Amber forecast = above allocation, green booked = at allocation, red = over. A dot means that discharge port comes before the load port. Hover a cell to release balance; Review appears when a request is waiting.">ⓘ How to read</span>
       <span class="legend"><span class="mk pool">+</span> pool / approved <span class="mk rel">−</span> released · hover a cell for detail</span></div>
-      <div class="acts"><button type="button" class="ghost sm" data-togall="1">Expand all</button><button type="button" class="ghost sm" data-togall="0">Collapse all</button></div></div>
+      <div class="acts"><button type="button" class="ghost sm" data-goto="tmpl|Allocation template">Template →</button><button type="button" class="ghost sm" data-togall="1">Expand all</button><button type="button" class="ghost sm" data-togall="0">Collapse all</button></div></div>
       ${board(b,()=>true,{editable:true})}
     </section>
     ${tmplPanel()}
@@ -2042,9 +2042,9 @@ function heatPanel(){
    The desk is one page of panels; each workspace shows only the panels for one job.
    Today / My port opens with the voyage's stage and a list of what needs attention. */
 // Overview first (Planning: next vessels), then down into one vessel (Allocation). Today's list lives in the bell.
-const WS_HQ=[{id:'plan',label:'Planning'},{id:'alloc',label:'Allocation'},{id:'accounts',label:'Space protection'},{id:'conn',label:'Connections'},{id:'perf',label:'Performance'},{id:'rules',label:'Rules & capacity'}];
+const WS_HQ=[{id:'plan',label:'Planning'},{id:'tmpl',label:'Templates'},{id:'alloc',label:'Allocation'},{id:'accounts',label:'Space protection'},{id:'conn',label:'Connections'},{id:'perf',label:'Performance'},{id:'rules',label:'Rules & capacity'}];
 const WS_AG=[{id:'home',label:'My port'},{id:'book',label:'Book'},{id:'forecast',label:'Forecast'},{id:'pool',label:'Balance pool'},{id:'cargo',label:'My cargo'}];
-const WS_MAP_HQ={'Allocation board':'alloc','Allocation template':'alloc','Additional loading':'alloc','Release allocation':'alloc','Balance pool':'alloc','Space protection':'accounts',
+const WS_MAP_HQ={'Allocation board':'alloc','Allocation template':'tmpl','Additional loading':'alloc','Release allocation':'alloc','Balance pool':'alloc','Space protection':'accounts',
   'Heatmap':'plan','Next vessels':'plan','Schedule changes':'plan','Connections':'conn','Intra-Asia onward':'conn','First-leg delays':'conn','Discharge plan':'conn',
   'Load list':'perf','Port performance':'perf','Release rules':'rules','Reefer plug BSA':'rules','Equipment & special cargo':'rules'};
 const WS_MAP_AG={'My allocation':'home','Book cargo':'book','Forecast':'forecast','Balance you can use':'pool','Ports ahead of you':'pool','First-leg delays':'cargo','Next vessels':'cargo'};
