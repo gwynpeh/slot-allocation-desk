@@ -299,6 +299,8 @@ details.fold[open] summary{margin-bottom:8px}
 .notice .tbl-wrap td:first-child,.notice .tbl-wrap th:first-child{background:var(--accent-soft)}
 button.relb{color:var(--muted);border:1px dashed var(--line)}
 button.relb:hover{color:var(--bad);border-color:var(--bad)}
+button.editb{background:var(--surface);color:var(--accent);border:1px solid var(--accent)}
+button.editb:hover{background:var(--accent-soft)}
 .cell-acts{display:flex;flex-wrap:wrap;gap:4px;justify-content:flex-end;margin-top:5px}
 .dec{display:flex;flex-direction:column;gap:6px;text-align:left;white-space:normal;min-width:250px;max-width:340px;padding:10px;border:1px solid var(--warn);border-radius:8px;background:var(--warn-soft);font-size:.8rem}
 .dec-r{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
@@ -1910,7 +1912,7 @@ function contractPanel(){
     return `<tr><td><b>${esc(c.customer)}</b></td><td>${BD(c.b).label}</td><td>${nm(c.port)}</td><td>${c.pod?nm(c.pod):'<span class="muted">Any</span>'}</td>
       <td class="num">${tot(pick(c))}</td><td class="num">${tot(u)}</td>
       <td class="util"><span class="u"><span>TEU</span>${meter(u.teu,c.teu)}<span class="num">${c.teu?pct(u.teu/c.teu):'—'}</span></span><span class="chip ${cls}">${txt}</span></td>
-      <td><div class="acts"><button type="button" class="ghost sm" data-editct="${c.id}">Amend</button><button type="button" class="ghost sm relb" data-delct="${c.id}">Remove</button></div></td></tr>`; };
+      <td><div class="acts"><button type="button" class="sm editb" data-editct="${c.id}">Amend</button><button type="button" class="ghost sm relb" data-delct="${c.id}">Remove</button></div></td></tr>`; };
   return `<section class="panel" data-nav="Space protection"><div class="ph"><div><h2>Space protection list for accounts</h2>
     <p>Allocation held for named accounts on a port of load and port of discharge, on ${curVoy().vessel} ${V}. Spot bookings on that port pair cannot use protected space until the account books it, HQ amends it, or it is removed.</p></div>
     <div class="alert-sum">${sum('WB')}${sum('EB')}</div></div>
