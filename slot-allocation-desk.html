@@ -312,6 +312,19 @@ button.editb:hover{background:var(--accent-soft)}
 .bell-n.act{background:var(--bad)}
 .bell-pop{position:absolute;right:0;top:calc(100% + 10px);width:min(620px,94vw);max-height:78vh;overflow:auto;z-index:60;border-radius:14px;box-shadow:0 18px 50px rgba(0,0,0,.35)}
 .bell-pop .panel.today{border:1px solid var(--line);margin:0}
+/* Stage bar under the vessel name */
+.stagebar{flex:1 1 100%;display:flex;flex-direction:column;gap:8px;margin-top:4px}
+.stages{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px}
+button.stage{display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:9px;background:var(--surface);border:1px solid var(--line);color:var(--muted);font-size:.84rem;font-weight:600;text-align:left;cursor:pointer}
+button.stage:hover{border-color:var(--accent);color:var(--ink)}
+button.stage .n{width:22px;height:22px;border-radius:50%;display:grid;place-items:center;font-size:.74rem;background:var(--line);color:var(--ink);flex:none}
+button.stage .t{flex:1}
+button.stage .now-t{font-size:.66rem;text-transform:uppercase;letter-spacing:.08em;color:var(--accent)}
+button.stage.done{color:var(--ok)} button.stage.done .n{background:var(--ok-soft);color:var(--ok)}
+button.stage.now{color:var(--ink);border-color:var(--accent);background:var(--accent-soft)} button.stage.now .n{background:var(--accent);color:#fff}
+button.stage.sel{box-shadow:0 0 0 2px var(--accent),0 0 14px var(--glow)}
+.stage-list{border:1px solid var(--line);border-radius:12px;background:var(--surface);padding:12px;display:flex;flex-direction:column;gap:10px}
+@media (max-width:760px){.stages{grid-template-columns:1fr 1fr}}
 /* Today */
 .today .phase{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px}
 .today .phase li{display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:8px;background:var(--surface-2);color:var(--muted);font-size:.82rem;font-weight:600;border:1px solid var(--line)}
@@ -2055,13 +2068,50 @@ function todayPanel(items){
       <div class="eyebrow">${curVoy().vessel} ${vtag()} · ${hq?BD(b).label:nm(role)}</div>
       <h2>${hq?'Today':'Your port today'} · ${fmt(TODAY)}</h2></div>
       <div class="acts">${hq&&otherN?`<button type="button" class="ghost sm" data-bound="${other}">${BD(other).label}: ${otherN} to look at →</button>`:''}</div></div>
-    ${ph?`<ol class="phase">${PHASES.map((t,i)=>`<li class="${i<ph.i?'done':i===ph.i?'now':''}"><span>${i+1}</span>${t}</li>`).join('')}</ol>
-    <p class="note">${nc?`Next cut-off: <b>${nm(nc.p)} ${fmt(nc.d)}</b> (${whenTxt(nc.d)}).`:'All cut-offs on this leg have passed.'}</p>`:''}
+    ${ph?`<p class="note">Stage: <b>${PHASES[ph.i]}</b> · ${nc?`next cut-off <b>${nm(nc.p)} ${fmt(nc.d)}</b> (${whenTxt(nc.d)}).`:'all cut-offs on this leg have passed.'}</p>`:''}
     <div class="inbox-h"><b>${nAct?`${nAct} need${nAct===1?'s':''} action`:'Nothing urgent'}</b>${nWatch?` · ${nWatch} to watch`:''}</div>
     ${rows?`<ul class="inbox">${rows}</ul>`:'<p class="empty">Nothing needs you right now.</p>'}
   </section>`;
 }
 function withBound(b,fn){ const k=B; B=b; try{ return fn(); } finally{ B=k; } }
+
+/* ---- Stage bar: where the vessel is in its cycle (context, always on screen). Click a stage for its checklist. ---- */
+let stageSel=null;
+// Which stages each kind of action belongs to, by the screen it opens.
+const PH_BY_NAV={'Additional loading':[1,2],'Release rules':[2],'Allocation board':[0,1,2],'Schedule changes':[1,2],'First-leg delays':[1,2],'Connections':[1,2],
+  'Next vessels':[0,1],'Load list':[3],'Balance pool':[1,2],'Forecast':[0,1],'Book cargo':[1,2],'Balance you can use':[1,2]};
+const phOf = i => PH_BY_NAV[i.nav] || [0,1,2,3];
+const STAGE_GO_HQ=[['alloc','Allocation board','Open allocation board'],['alloc','Allocation board','Open allocation board'],['rules','Release rules','Open release rules'],['perf','Load list','Open load list']];
+const STAGE_GO_AG=[['forecast','Forecast','Open forecast'],['book','Book cargo','Book cargo'],['book','Book cargo','Book cargo'],['cargo','','Open my cargo']];
+// Checks that only matter in one stage.
+function stageExtra(i){
+  const b=B, it=[], ports=origins(b).filter(p=>loadsIn(b,p));
+  if(role!=='HQ'){
+    const p=role, e=effP(b,p), u=usedP(b,p);
+    if(i===1&&e.teu&&u.teu/e.teu<0.5) it.push({sev:'watch',ws:'book',nav:'Book cargo',title:`You are ${pct(u.teu/e.teu)} booked`,detail:`${tot(vpos(vsub(e,u)))} still open`,btn:'Book'});
+    return it;
+  }
+  if(i===0){ const fo=ports.filter(p=>vany(fcOver(b,p))); if(fo.length) it.push({sev:'watch',ws:'alloc',nav:'Allocation board',title:`Forecast above allocation at ${fo.length} port${fo.length>1?'s':''}`,detail:fo.map(nm).join(', '),btn:'Adjust'}); }
+  if(i===1){ const lo=ports.filter(p=>!closedP(b,p)&&effP(b,p).teu&&usedP(b,p).teu/effP(b,p).teu<0.5); if(lo.length) it.push({sev:'watch',ws:'alloc',nav:'Allocation board',title:`${lo.length} port${lo.length>1?'s':''} under 50% booked`,detail:lo.map(nm).join(', '),btn:'Open board'}); }
+  if(i===3){ const ns=ports.filter(p=>{ const L=loadedP(b,p), U=usedP(b,p); return L&&U.teu&&L.teu<U.teu*0.95; });
+    if(ns.length) it.push({sev:'watch',ws:'perf',nav:'Load list',title:`No-shows above 5% at ${ns.length} port${ns.length>1?'s':''}`,detail:ns.map(p=>`${nm(p)} ${pct(1-loadedP(b,p).teu/usedP(b,p).teu)}`).join(', '),btn:'Load list'}); }
+  return it;
+}
+function stageBar(items){
+  const hq=role==='HQ', b=B; if(!hq&&!loadsIn(b,role)) return '';
+  const ph=hq?phaseOf(b):phaseOf(b,role), sel=stageSel, go=(hq?STAGE_GO_HQ:STAGE_GO_AG);
+  const rank={act:0,watch:1,info:2};
+  const list = sel===null ? null : [...items.filter(i=>phOf(i).includes(sel)), ...stageExtra(sel)].sort((a,c)=>rank[a.sev]-rank[c.sev]);
+  const rows = list ? list.map(i=>`<li class="it ${i.sev}"><span class="dot" aria-hidden="true"></span><div class="it-t"><b>${i.title}</b><span class="muted">${i.detail}</span></div>
+      <div class="acts">${i.extra||''}${i.btn?`<button type="button" class="ghost sm" data-goto="${i.ws}|${esc(i.nav)}"${i.ia?` data-iasel="${i.ia}"`:''}>${i.btn} →</button>`:''}</div></li>`).join('') : '';
+  const nc=hq?nextCutoff(b):nextCutoff(b,role);
+  return `<div class="stagebar">
+    <div class="stages" role="group" aria-label="Voyage stage">${PHASES.map((t,i)=>`<button type="button" class="stage ${i<ph.i?'done':i===ph.i?'now':''} ${sel===i?'sel':''}" data-stagesel="${i}" aria-pressed="${sel===i}"><span class="n">${i<ph.i?'✓':i+1}</span><span class="t">${t}</span>${i===ph.i?'<span class="now-t">now</span>':''}</button>`).join('')}</div>
+    ${list?`<div class="stage-list"><div class="ph"><b>${PHASES[sel]} checklist</b><div class="acts"><button type="button" class="primary sm" data-goto="${go[sel][0]}|${go[sel][1]}">${go[sel][2]} →</button><button type="button" class="ghost sm" data-stagesel="${sel}">Close</button></div></div>
+      ${rows?`<ul class="inbox">${rows}</ul>`:'<p class="empty">Nothing outstanding for this stage.</p>'}</div>`
+      :`<p class="note">${nc?`Next cut-off: <b>${nm(nc.p)} ${fmt(nc.d)}</b> (${whenTxt(nc.d)}).`:'All cut-offs on this leg have passed.'} Click a stage to see its checklist.</p>`}
+  </div>`;
+}
 
 // Fit the allocation board into the window: no sideways or downward scrolling. Scales down, never below 70%.
 function fitBoard(){
@@ -2084,7 +2134,7 @@ function applyWorkspace(){
   bn.hidden=!nb; bn.textContent=nb; bn.className='bell-n'+(LAST_ITEMS.some(i=>i.sev==='act')?' act':'');
   const cur=curWs();
   app.querySelectorAll('.grid > *, .route').forEach(el=>{ el.hidden = wsOf(el)!==cur; });
-  const vh=app.querySelector('.voyage'); if(vh) vh.hidden = cur==='alloc';     // the board carries the vessel name itself
+  const vh=app.querySelector('.voyage'); if(vh){ vh.hidden = cur==='alloc'; vh.insertAdjacentHTML('beforeend', stageBar(LAST_ITEMS)); }   // the board carries the vessel name itself
   // Planning reads top-down: next vessels first, then the heatmap and schedule changes.
   if(cur==='plan' && grid) ['Schedule changes','Heatmap','Next vessels'].forEach(nv=>{ const el=grid.querySelector(`:scope > [data-nav="${nv}"]`); if(el) grid.insertBefore(el,grid.firstChild); });
   const n=id=>LAST_ITEMS.filter(i=>i.sev!=='info'&&i.ws===id).length;
@@ -2148,7 +2198,8 @@ document.getElementById('reset').addEventListener('click',e=>{
 const app=document.getElementById('app');
 app.addEventListener('click',e=>{
   const btn=e.target.closest('button'); if(!btn) return;
-  if(btn.dataset.goto){ const [w,nav]=btn.dataset.goto.split('|'); if(btn.dataset.iasel) iaSel=btn.dataset.iasel; goWs(w,nav); return; }
+  if(btn.dataset.goto){ const [w,nav]=btn.dataset.goto.split('|'); if(btn.dataset.iasel) iaSel=btn.dataset.iasel; stageSel=null; goWs(w,nav); return; }
+  if(btn.dataset.stagesel){ const i=+btn.dataset.stagesel; stageSel = stageSel===i ? null : i; render(); return; }
   if(btn.dataset.bound && !btn.closest('#bound-seg')){ B=btn.dataset.bound; armed=null; render(); return; }
   if(btn.dataset.arm){ armed=btn.dataset.arm; render(); return; }
   if('disarm' in btn.dataset){ armed=null; render(); return; }
