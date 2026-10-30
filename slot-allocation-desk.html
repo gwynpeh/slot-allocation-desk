@@ -437,6 +437,77 @@ table.mini small.rev{display:block;font-size:.66rem;color:var(--accent)}
 tr.loadrow td{background:var(--surface-2);font-size:.84rem;padding-top:6px;padding-bottom:6px}
 .tbl-wrap tr.loadrow td:first-child{background:var(--surface-2);padding-left:44px}
 tr.loadrow .ld{white-space:nowrap}
+/* Allocation board: one row per measure, Allocation / Forecast / Booked as columns. Colour: soft allocation band, teal booked, amber/red only for warnings. */
+:root{--alloc-bg:#FAF9FF;--alloc-bg2:#F5F3FF;--bk:#0F766E}
+:root[data-theme="dark"]{--alloc-bg:#1B1934;--alloc-bg2:#221F40;--bk:#2DD4BF}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--alloc-bg:#1B1934;--alloc-bg2:#221F40;--bk:#2DD4BF}}
+table.abd{border-collapse:separate;border-spacing:0;width:100%;font-variant-numeric:tabular-nums;font-size:.8rem}
+.tbl-wrap table.abd th,.tbl-wrap table.abd td{position:static;min-width:0;box-shadow:none;padding:3px 6px;text-align:right;white-space:nowrap;border-bottom:0;background:transparent}
+.tbl-wrap table.abd thead th{font-size:.68rem;font-weight:600;color:var(--muted);text-transform:none;letter-spacing:0;border-bottom:1px solid var(--line)}
+.tbl-wrap table.abd thead tr:first-child th{font-size:.74rem;color:var(--ink);text-transform:uppercase;letter-spacing:.04em;border-bottom:0;text-align:center}
+table.abd thead th small{display:inline;font-weight:500;color:var(--muted);text-transform:none;letter-spacing:0;margin-left:4px;font-size:.66rem}
+.tbl-wrap table.abd thead tr:first-child th.pl,.tbl-wrap table.abd thead tr:first-child th.stc{text-align:left;vertical-align:bottom;font-size:.68rem;color:var(--muted)}
+table.abd th.pod,table.abd td.ca,table.abd td.c1{border-left:1px solid var(--line)}
+table.abd th.ha{color:var(--accent)} table.abd th.hb{color:var(--bk)}
+.tbl-wrap table.abd td.pl{text-align:left;vertical-align:top;white-space:normal;min-width:150px;max-width:190px;padding-left:4px}
+table.abd .pn{font-weight:700;font-size:.86rem}
+table.abd .pn code{font-size:.66rem;color:var(--muted);margin-left:5px;font-weight:400}
+table.abd td.pl small{display:block;font-size:.7rem;color:var(--muted);line-height:1.3}
+table.abd td.un{color:var(--muted);font-size:.66rem;text-align:left;padding:3px 2px 3px 0}
+table.abd tr.t td{padding-top:7px}
+table.abd tbody tr.last td,table.abd tbody td[rowspan]{border-bottom:1px solid var(--line)}
+table.abd tbody tr.last td{padding-bottom:7px}
+table.abd td.ca{background:var(--alloc-bg);font-weight:700;position:relative}
+table.abd tr.feeder td.ca{background:var(--alloc-bg2)}
+table.abd td.cf{color:var(--muted)}
+table.abd tr.t td.cb{color:var(--bk);font-weight:600}
+table.abd tr:not(.t) td.ca,table.abd tr:not(.t) td.cf,table.abd tr:not(.t) td.cb,table.abd tr:not(.t) td.c1{color:var(--wt)}
+table.abd tr:not(.t) td.cf{opacity:.8}
+table.abd td.na{color:var(--line)}
+table.abd td.hot{background:var(--warn-soft)} table.abd td.ca.hot{box-shadow:inset 2px 0 0 var(--warn)}
+table.abd td.over{background:var(--bad-soft)} table.abd td.ca.over{box-shadow:inset 2px 0 0 var(--bad)}
+table.abd td.fo{color:var(--warn)!important;font-weight:700}
+table.abd td.tc{background:var(--surface-2)} table.abd td.ca.tc,table.abd th.tt,table.abd td.tc:first-of-type{border-left:1px solid var(--line)}
+table.abd tr.feeder td{background-color:color-mix(in srgb,var(--surface-2) 55%,transparent)}
+table.abd tr.feeder td.pl{padding-left:18px}
+table.abd tr.self td.pl{box-shadow:inset 3px 0 0 var(--accent)}
+.tbl-wrap table.abd td.stc,.tbl-wrap table.abd th.stc{text-align:left;padding-left:12px;border-left:1px solid var(--line);vertical-align:top;white-space:normal;min-width:150px;max-width:200px}
+table.abd td.stc small{display:block;font-size:.7rem;color:var(--muted);margin-top:3px}
+table.abd td.stc .st-act{margin-top:5px}
+table.abd td.stc .st-act button{border:1px solid var(--line);border-radius:6px;padding:2px 9px;font-size:.72rem;background:var(--surface);color:var(--ink)}
+table.abd td.stc .chip{white-space:normal}
+table.abd input{width:4.4em;padding:1px 4px;font-size:.78rem;text-align:right}
+table.abd input.mt{width:5.2em}
+table.abd .mk{font-size:.62rem;margin-right:3px;vertical-align:1px}
+button.rdot{width:9px;height:9px;padding:0;border:0;border-radius:50%;background:var(--warn);box-shadow:0 0 0 3px var(--warn-soft);margin-right:6px;vertical-align:1px;cursor:pointer}
+button.vtog{display:block;margin-top:3px;padding:0;border:0;background:none;color:var(--accent);font-size:.72rem;font-weight:600;cursor:pointer;text-align:left}
+button.vtog:hover{text-decoration:underline}
+table.abd .vb{display:flex;flex-wrap:wrap;gap:3px;margin-top:3px} table.abd .vb .chip{font-size:.64rem;padding:1px 6px}
+table.abd td.cb{position:relative}
+table.abd .cell-wrap .cell-acts{display:none;position:absolute;right:2px;top:calc(100% - 2px);z-index:30}
+table.abd td:hover .cell-wrap .cell-acts,table.abd td:focus-within .cell-wrap .cell-acts,table.abd .cell-wrap .cell-acts.open{display:flex}
+table.abd .cell-wrap .cell-acts.open{box-shadow:0 10px 30px rgba(0,0,0,.25);border-radius:8px}
+table.abd tfoot td{background:var(--surface-2);font-weight:700;border-top:2px solid var(--line)}
+table.abd tfoot tr:not(.t) td{border-top:0}
+table.abd tfoot td.ca{background:var(--alloc-bg2)}
+table.abd tfoot tr.legsp td{font-weight:400;color:var(--muted);text-align:center;font-size:.72rem;border-top:0;padding-bottom:6px}
+table.abd tfoot tr.legsp td.pl{text-align:left}
+table.abd tfoot tr.legsp td.neg{color:var(--bad);font-weight:700}
+table.abd tr.loadrow td{background:var(--surface-2);font-size:.78rem}
+table.abd tr.loadrow td.pl{padding-left:30px}
+table.abd tr.loadrow td small{display:block;color:var(--wt);font-size:.68rem}
+table.abd.one td.c1{min-width:64px}
+.board-tools{display:flex;align-items:center;gap:8px 14px;flex-wrap:wrap;font-size:.76rem;color:var(--muted);margin:-2px 0 8px}
+.seg2{display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden;margin-left:4px}
+.seg2 button{border:0;border-right:1px solid var(--line);border-radius:0;padding:3px 10px;font-size:.74rem;background:var(--surface);color:var(--muted)}
+.seg2 button:last-child{border-right:0}
+.seg2 button[aria-pressed="true"]{background:var(--accent-soft);color:var(--accent);font-weight:600}
+.bsw{display:inline-flex;align-items:center;gap:6px;border:0;background:none;padding:0;color:var(--muted);font-size:.76rem;cursor:pointer}
+.bsw i{width:28px;height:16px;border-radius:9px;background:var(--line);position:relative;transition:background .15s}
+.bsw i::after{content:"";position:absolute;left:2px;top:2px;width:12px;height:12px;border-radius:50%;background:#fff;transition:transform .15s}
+.bsw[aria-pressed="true"]{color:var(--accent);font-weight:600} .bsw[aria-pressed="true"] i{background:var(--accent)} .bsw[aria-pressed="true"] i::after{transform:translateX(12px)}
+.board-key{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:.7rem;color:var(--muted);margin-top:6px}
+.board-key i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:4px;vertical-align:-1px}
 table.ia td.hm{min-width:132px}
 table.ia td.hm input{width:4.6em;margin-top:4px;font-size:.78rem;padding:3px 5px}
 table.ia td.hm .pair,table.ia td .pair{justify-content:center}
@@ -1109,77 +1180,103 @@ function connections(){
     <div class="conn"><div class="conn-col"><span class="eyebrow">Loading via</span>${joins}</div><div class="conn-col"><span class="eyebrow">Onward from port of discharge</span>${leaves}</div></div></section>`;
 }
 
-// Each cell is a small grid: TEU and MT down, Allocation / Forecast / Booked across.
-function miniGrid(allocCell, f, hasF, u, e){
-  return `<table class="mini"><thead><tr><th></th><th>Allocation</th><th>Forecast</th><th>Booked</th></tr></thead><tbody>${DIMS.map(x=>`<tr><th>${x.u}</th>
-    <td>${allocCell(x)}</td>
-    <td class="${hasF&&f[x.k]>e[x.k]?'fo':''}">${hasF?n0(f[x.k]):'—'}</td>
-    <td class="${e[x.k]&&u[x.k]>e[x.k]?'ov':e[x.k]&&u[x.k]>=e[x.k]?'fullc':''}">${n0(u[x.k])}</td></tr>`).join('')}</tbody></table>`;
+// Board view settings (HQ): units shown, what each cell shows, and whether allocation is editable.
+let bUnits='both', bShow='all', bEdit=false;
+const bDims = () => bUnits==='teu' ? DIMS.filter(x=>x.k==='teu') : DIMS;
+const bCols = () => bShow==='all' ? 3 : 1;
+// Fill level of one POL→POD: over the allocation, or booked at 85% or more of it.
+const fillCls = (e,u) => DIMS.some(x=>e[x.k]&&u[x.k]>e[x.k]) ? 'over' : DIMS.some(x=>e[x.k]&&u[x.k]>=e[x.k]*0.85) ? 'hot' : '';
+// The cells of one measure row (TEU or MT) for one POL→POD, or for a port's total.
+function measureCells(x,e,f,hf,u,cls,allocHtml,extra){
+  if(bShow==='pct') return `<td class="c1 ${cls}">${e[x.k]?Math.round(u[x.k]/e[x.k]*100)+'%':'—'}${extra||''}</td>`;
+  if(bShow==='fva'){ const g=f[x.k]-e[x.k]; return `<td class="c1 ${cls} ${hf&&g>0?'fo':''}">${!hf?'—':g>0?'+'+n0(g):g<0?'−'+n0(-g):'0'}${extra||''}</td>`; }
+  return `<td class="ca ${cls}">${allocHtml}</td><td class="cf ${cls} ${hf&&f[x.k]>e[x.k]?'fo':''}">${hf?n0(f[x.k]):'—'}</td><td class="cb ${cls}">${n0(u[x.k])}${extra||''}</td>`;
 }
+const blankCells = () => bShow==='all' ? '<td class="ca na">·</td><td class="na"></td><td class="na"></td>' : '<td class="c1 na">·</td>';
 function portRow(b,p,opts){
   const {editable=false, actions=true} = opts||{};
-  const fi=feedInfo(b,p), st=status(b,p);
-  const cells = BD(b).pods.map(d=>{
-    if(!podOK(b,p,d)) return `<td class="na" title="Not after this port in the rotation">·</td>`;
+  const fi=feedInfo(b,p), st=status(b,p), dims=bDims(), rs=dims.length, edit=editable&&bEdit;
+  const pods=BD(b).pods.map(d=>{
+    if(!podOK(b,p,d)) return null;
     const bs=base(b,p,d), e=eff(b,p,d), u=used(b,p,d), r=rel(b,p,d), c=claimedIn(b,p,d);
-    if(!editable && !vany(bs) && !vany(c)) return `<td class="num muted">—</td>`;
-    const allocCell = x => editable
-      ? `<input type="number" min="0" step="1" class="${x.k}" id="al-${b}-${p}-${d}-${x.k}" data-alloc="${b}|${p}|${d}|${x.k}" value="${bs[x.k]}" aria-label="${nm(p)} to ${nm(d)} allocation ${x.u}">${e[x.k]!==bs[x.k]?`<small class="rev" title="Revised allocation">rev ${n0(e[x.k])}</small>`:''}`
-      : `<b>${n0(e[x.k])}</b>`;
-    const pr=vsum(reqs(b,p,'pending').filter(q=>q.pod===d).map(pick));
-    // Detail that changes the revised allocation goes in the cell's tooltip; loaded stays visible.
-    const xa=extraIn(b,p,d), l=loadedOf(b,p,d);
-    const tip=[vany(r)?`Released ${tot(r)}`:'', vany(c)?`Taken from pool ${tot(c)}`:'', vany(xa)?`Approved extra ${tot(xa)}`:'', vany(pr)?`Requested ${tot(pr)}`:''].filter(Boolean).join(' · ');
+    const xa=extraIn(b,p,d), l=loadedOf(b,p,d), pr=vsum(reqs(b,p,'pending').filter(q=>q.pod===d).map(pick));
+    const empty=!(editable&&bEdit) && !vany(bs) && !vany(c) && !vany(u);
+    // Detail that changes the revised allocation goes in the tooltip.
+    const tip=[vany(bs)&&tot(bs)!==tot(e)?`Original ${tot(bs)}, revised ${tot(e)}`:'', vany(r)?`Released ${tot(r)}`:'', vany(c)?`Taken from pool ${tot(c)}`:'', vany(xa)?`Approved extra ${tot(xa)}`:'', vany(pr)?`Requested ${tot(pr)}`:'', l?`Loaded ${tot(l)}`:''].filter(Boolean).join(' · ');
     const ov=S.ovr&&S.ovr[K(b,aKey(b,p),d)];
-    const marks=[ov?'<span class="mk ovr" title="Changed from template on this vessel" aria-hidden="true">✎</span>':'', vany(r)?'<span class="mk rel" aria-hidden="true">−</span>':'', vany(c)||vany(xa)?'<span class="mk pool" aria-hidden="true">+</span>':''].join('');
-    return `<td class="pod-cell"${tip?` title="${tip}"`:''}>${miniGrid(allocCell,fc(b,p,d),hasFc(b,p,d),u,e)}${l||marks?`<span class="sub">${marks}${l?`<span class="tag ldt">Loaded ${n0(l.teu)} / ${n0(l.mt)}</span>`:''}</span>`:''}${editable&&role==='HQ'?podActions(b,p,d):''}</td>`;
+    const marks=[ov?'<span class="mk ovr" title="Changed from template on this vessel">✎</span>':'', vany(r)?'<span class="mk rel">−</span>':'', vany(c)||vany(xa)?'<span class="mk pool">+</span>':''].join('');
+    return {d,bs,e,u,f:fc(b,p,d),hf:hasFc(b,p,d),pend:vany(pr),tip,marks,empty};
+  });
+  const cellsFor=(x,first)=>pods.map(o=>{
+    if(!o || o.empty) return blankCells();
+    const key=K(b,p,o.d), cls=closedP(b,p)?'':fillCls(o.e,o.u);
+    const dot=first&&o.pend?`<button type="button" class="rdot" data-opencell="${key}" title="Request waiting for HQ. Click to review." aria-label="Review request ${nm(p)} to ${nm(o.d)}"></button>`:'';
+    const allocHtml = edit
+      ? `<input type="number" min="0" step="1" class="${x.k}" id="al-${b}-${p}-${o.d}-${x.k}" data-alloc="${b}|${p}|${o.d}|${x.k}" value="${o.bs[x.k]}" aria-label="${nm(p)} to ${nm(o.d)} allocation ${x.u}">`
+      : `${dot}${first?o.marks:''}<span${o.tip?` title="${o.tip}"`:''}>${n0(o.e[x.k])}</span>`;
+    const acts=first&&editable&&role==='HQ'?podActions(b,p,o.d):'';
+    return measureCells(x,o.e,o.f,o.hf,o.u,cls,allocHtml,acts?`<span class="cell-wrap">${acts}</span>`:'');
   }).join('');
-  const e=effP(b,p), u=usedP(b,p), ra=rfA(b,p), ru=rfUsed(b,p), rt=rfTeuUsed(b,p);
+  const e=effP(b,p), u=usedP(b,p), o=baseP(b,p), F=fcP(b,p), Ld=loadedP(b,p), ra=rfA(b,p), ru=rfUsed(b,p), rt=rfTeuUsed(b,p);
+  const totCells=x=>measureCells(x,e,F,vany(F),u,'tc',`<span${o[x.k]!==e[x.k]?` title="Original ${n0(o[x.k])}"`:''}>${n0(e[x.k])}</span>`);
   let act='';
   if(actions){
-    if(closedP(b,p)) act = role==='HQ' ? `<button type="button" data-reopen="${p}">Reopen</button>` : '';
-    else { const un=vpos(vsub(e,u)); act = armed===p
-      ? `<div class="acts">${reasonSel('rs-port-'+p,'release')}<button type="button" class="danger armed" data-release="${p}">Release ${n0(un.teu)} TEU / ${n0(un.mt)} MT</button><button type="button" class="ghost" data-disarm>Cancel</button></div>`
-      : `<button type="button" class="danger" data-arm="${p}" ${vany(un)||(ra>ru)?'':'disabled'}>Release unused</button>`; }
+    if(closedP(b,p)) act = role==='HQ' ? `<button type="button" class="ghost sm" data-reopen="${p}">Reopen</button>` : '';
+    else { const un=vpos(vsub(e,u)), worth=un.teu>=10||(ra>ru&&ra-ru>=2); act = armed===p
+      ? `<div class="acts">${reasonSel('rs-port-'+p,'release')}<button type="button" class="danger armed sm" data-release="${p}">Release ${n0(un.teu)} TEU / ${n0(un.mt)} MT</button><button type="button" class="ghost sm" data-disarm>Cancel</button></div>`
+      : worth?`<button type="button" class="ghost sm" data-arm="${p}">Release unused</button>`:''; }
   }
-  return `<tr class="${fi?'feeder':''} ${p===role?'self':''}">
-    <td><span class="pname">${fi?'↳ ':''}${nm(p)} <code class="muted">${p}</code><small>${isGroup(b,p)?`Shared allocation · ${membersOf(b,p).map(nm).join(', ')} · via ${sn(fi.hub)}`:fi?`Loading via ${sn(fi.hub)} · ${fi.svc?fi.svc+' service':fi.land}`:'Vessel call · local cargo'}</small></span></td>
-    ${cells}
-    ${(()=>{ const o=baseP(b,p), F=fcP(b,p), L=loadedP(b,p);
-      const ac=x=>`<b>${n0(e[x.k])}</b>${o[x.k]!==e[x.k]?`<small class="rev" title="Original allocation">orig ${n0(o[x.k])}</small>`:''}`;
-      return `<td class="pod-cell tot-cell">${miniGrid(ac,F,vany(F),u,e)}<span class="sub">${fcLocked(b,p)?'<span class="tag rel">Forecast locked</span> ':''}${L?`<span class="tag ldt">Loaded ${n0(L.teu)} / ${n0(L.mt)}</span>`:''}</span></td>`; })()}
-    <td class="st-cell"><span class="chip ${st.cls}">${st.txt}</span>
-      ${role==='HQ'?(()=>{ const c=cmP(b,p); return c?`<small class="muted" title="Contribution margin booked">CM ${usd(c)} · ${n0(c/Math.max(1,u.teu))}/TEU</small>`:''; })():''}
-      ${ru||ra!==undefined?`<small class="rft" title="Reefer plugs used / port reefer BSA">RF ${ru}${ra!==undefined?` / ${ra}`:''} plugs · ${rt} TEU</small>`:''}
-      ${actions&&act?`<div class="st-act">${act}</div>`:''}</td></tr>`;
+  const cm=role==='HQ'?cmP(b,p):0;
+  const meta=[cm?`CM ${n0(cm/Math.max(1,u.teu))}/TEU`:'', ru||ra!==undefined?`RF ${ru}${ra!==undefined?`/${ra}`:''}`:'', fcLocked(b,p)?'Fcst locked':''].filter(Boolean).join(' · ');
+  const stCell=`<td class="stc" rowspan="${rs}"><span class="chip ${st.cls}">${st.txt}</span>${meta?`<small title="${cm?`Contribution margin booked ${usd(cm)}. `:''}${rt?`${rt} reefer TEU`:''}">${meta}</small>`:''}
+    ${Ld?`<small>Loaded ${n0(Ld.teu)} TEU / ${n0(Ld.mt)} MT</small>`:''}${act?`<div class="st-act">${act}</div>`:''}</td>`;
+  const name=`<td class="pl" rowspan="${rs}"><span class="pn">${nm(p)}<code>${isGroup(b,p)?'shared':p}</code></span><small>${isGroup(b,p)?`One shared allocation · ${membersOf(b,p).map(sn).join(', ')} · via ${sn(fi.hub)}`:fi?`Loading via ${sn(fi.hub)} · ${fi.svc?fi.svc+' service':fi.land}`:`Cut-off ${cutoff(E(ci(b,p)))}`}</small>${opts.tog||''}</td>`;
+  const cls=`${fi?'feeder':''} ${p===role?'self':''}`;
+  return dims.map((x,i)=>`<tr class="${cls} ${i===0?'t':''} ${i===rs-1?'last':''}">${i===0?name:''}<td class="un">${x.u}</td>${cellsFor(x,i===0)}${totCells(x)}${i===0?stCell:''}</tr>`).join('');
 }
 
 function board(b, filter, opts){
-  const actions = opts.actions!==false;
-  const cols = BD(b).pods.length+3;
-  let h=`<div class="tbl-wrap scrolly"><table class="board"><thead><tr><th>Port of load</th>${BD(b).pods.map(d=>`<th>→ ${sn(d)}</th>`).join('')}<th>Total</th><th>Status</th></tr></thead><tbody>`;
+  const actions = opts.actions!==false, n=bCols(), pods=BD(b).pods;
+  const sub = bShow==='all' ? '<th class="ha">Allocation</th><th>Forecast</th><th class="hb">Booked</th>' : `<th>${bShow==='pct'?'Booked %':'Fcst − alloc.'}</th>`;
+  let h=`<div class="tbl-wrap"><table class="abd ${bShow!=='all'?'one':''}"><thead><tr><th class="pl" rowspan="2">Port of load</th><th class="un" rowspan="2"></th>${pods.map(d=>`<th class="pod" colspan="${n}">→ ${sn(d)}<small>${d}</small></th>`).join('')}<th class="pod tt" colspan="${n}">Total</th><th class="stc" rowspan="2">Status</th></tr>
+    <tr>${pods.map(()=>sub).join('')}${sub}</tr></thead><tbody>`;
   BD(b).pols.forEach(pol=>{
     const g=groupPorts(b,pol).filter(filter); if(!g.length) return;
-    const all=groupPorts(b,pol), e=vsum(all.map(x=>effP(b,x))), u=vsum(all.map(x=>usedP(b,x)));
+    const all=groupPorts(b,pol);
     // Ports loading via this call fold under it; open on request, or when the viewer / an open review box is inside.
     const via=all.filter(x=>x!==pol), key=b+'|'+pol;
     const open = expanded.has(key) || (role!=='HQ' && via.includes(aKey(b,role))) || via.some(x=>editCell&&editCell.startsWith(b+'|'+x+'|'));
-    const nVia = via.reduce((n,x)=>n+(isGroup(b,x)?membersOf(b,x).length:1),0);
+    const nVia = via.reduce((k,x)=>k+(isGroup(b,x)?membersOf(b,x).length:1),0);
     const pq=vsum(via.flatMap(x=>reqs(b,x,'pending')).map(pick)), fo=via.filter(x=>vany(fcOver(b,x))).length;
-    const badges=open?'':[vany(pq)?`<span class="chip warnc">${n0(pq.teu)} TEU awaiting HQ</span>`:'', fo?`<span class="chip warnc">${fo} forecast over</span>`:''].join(' ');
-    const tog=via.length?`<button type="button" class="tog" data-tog="${key}" aria-expanded="${open}">${open?'▾ Hide':'▸ Show'} ${nVia} port${nVia>1?'s':''} loading via ${sn(pol)}</button>`:'';
-    h+=`<tr class="grp"><td colspan="${cols}"><span class="gl"><b>${nm(pol)}</b>${tog}${badges} <span class="gsum">· cut-off ${cutoff(E(ci(b,pol)))} · loads here ${n0(u.teu)} / ${n0(e.teu)} TEU · ${n0(u.mt)} / ${n0(e.mt)} MT</span></span></td></tr>`;
-    g.filter(p=>p===pol||open).forEach(p=>{ h+=portRow(b,p,opts); if(isGroup(b,p)) h+=membersOf(b,p).map(m=>loadRow(b,m,actions)).join(''); });
+    const badges=open?'':[vany(pq)?`<span class="chip warnc">${n0(pq.teu)} TEU awaiting HQ</span>`:'', fo?`<span class="chip warnc">${fo} forecast over</span>`:''].join('');
+    const tog=via.length?`<button type="button" class="vtog" data-tog="${key}" aria-expanded="${open}">${open?'▾':'▸'} ${nVia} port${nVia>1?'s':''} loading via ${sn(pol)}</button>${badges?`<span class="vb">${badges}</span>`:''}`:'';
+    g.filter(p=>p===pol||open).forEach(p=>{ h+=portRow(b,p,{...opts,tog:p===pol?tog:''}); if(isGroup(b,p)) h+=membersOf(b,p).map(m=>loadRow(b,m)).join(''); });
   });
-  return h+'</tbody></table></div>';
+  h+='</tbody>';
+  if(opts.editable) h+=boardFoot(b);
+  return h+'</table></div>';
+}
+// Totals for each port of discharge across every port of load, and the spare on the leg into it.
+function boardFoot(b){
+  const pods=BD(b).pods, ports=BD(b).pols.flatMap(pol=>groupPorts(b,pol)), L=legs();
+  const sums=pods.map(d=>{ const ok=ports.filter(p=>podOK(b,p,d));
+    return {e:vsum(ok.map(p=>eff(b,p,d))), u:vsum(ok.map(p=>used(b,p,d))), f:vsum(ok.filter(p=>hasFc(b,p,d)).map(p=>fc(b,p,d)))}; });
+  const T={e:vsum(sums.map(s=>s.e)), u:vsum(sums.map(s=>s.u)), f:vsum(sums.map(s=>s.f))};
+  const spare=d=>vsub(VESSEL.cap,L[ci(b,d)-1].alloc);
+  const first=ci(b,BD(b).pols[0]), last=ci(b,pods[pods.length-1]);
+  const tight=L.slice(first,last).reduce((m,l)=>Math.min(m,VESSEL.cap.teu-l.alloc.teu),Infinity);
+  const dims=bDims();
+  let h='<tfoot>'+dims.map((x,i)=>`<tr class="${i===0?'t':''}">${i===0?`<td class="pl" rowspan="${dims.length}">All ports</td>`:''}<td class="un">${x.u}</td>${sums.map(s=>measureCells(x,s.e,s.f,vany(s.f),s.u,'',n0(s.e[x.k]))).join('')}${measureCells(x,T.e,T.f,vany(T.f),T.u,'tc',n0(T.e[x.k]))}${i===0?`<td class="stc" rowspan="${dims.length}"><span class="chip ${tight<0?'over':tight<VESSEL.cap.teu*0.1?'warnc':''}" title="Least space left on any leg of this bound">${tight<0?`Over by ${n0(-tight)} TEU`:`${n0(tight)} TEU spare`} · tightest leg</span></td>`:''}</tr>`).join('');
+  h+=`<tr class="legsp"><td class="pl">Spare on the leg into this port</td><td></td>${pods.map(d=>{ const s=spare(d), over=DIMS.some(x=>s[x.k]<0); return `<td colspan="${bCols()}" class="${over?'neg':''}" title="${n0(s.teu)} TEU / ${n0(s.mt)} MT">${n0(s.teu)} TEU${bUnits==='both'?` · ${n0(s.mt)} MT`:''}</td>`; }).join('')}<td colspan="${bCols()}"></td><td></td></tr>`;
+  return h+'</tfoot>';
 }
 // A port inside a shared allocation: its own loading only, no allocation of its own.
-function loadRow(b,m,actions){
+function loadRow(b,m){
   const own=d=>vsum(bksOwn(b,m,d).map(pick));
-  const cell=u=>vany(u)?`<span class="ld">Booked <b>${n0(u.teu)}</b> TEU · ${n0(u.mt)} MT</span>`:'<span class="muted">—</span>';
-  return `<tr class="loadrow ${m===role?'self':''}"><td><span class="pname">${nm(m)} <code class="muted">${m}</code><small>Loading only · books against the shared ${nm(aKey(b,m))} allocation</small></span></td>
-    ${BD(b).pods.map(d=>podOK(b,m,d)?`<td class="num">${cell(own(d))}</td>`:'<td class="na">·</td>').join('')}
-    <td class="num">${cell(own())}</td><td></td></tr>`;
+  const cell=u=>{ if(bShow!=='all') return `<td class="c1">${vany(u)?n0(u.teu):''}</td>`;
+    return `<td class="ca"></td><td></td><td class="cb">${vany(u)?`${n0(u.teu)}${bUnits==='both'?`<small>${n0(u.mt)} MT</small>`:''}`:''}</td>`; };
+  return `<tr class="loadrow t last ${m===role?'self':''}"><td class="pl"><span class="pn">${nm(m)}<code>${m}</code></span><small>Booked against the shared ${aKey(b,m)} allocation</small></td><td class="un">TEU</td>
+    ${BD(b).pods.map(d=>podOK(b,m,d)?cell(own(d)):blankCells()).join('')}${cell(own())}<td class="stc"></td></tr>`;
 }
 
 function dischargePlan(b, bks, title, note, onlyPod){
@@ -1447,10 +1544,13 @@ function hqView(){
   const sources = origins(b).filter(u=>vany(relP(b,u)));
   return `<div class="grid">${alerts()}${reminder()}
     <section class="panel board-panel" data-nav="Allocation board"><div class="ph"><div class="bh"><h2>${BD(b).label} allocation board · ${curVoy().vessel} ${vtag()} <small class="cls-tag">${CLS().label} class</small></h2><span class="sample">Sample · today ${fmt(TODAY)}</span>
-      <span class="info" tabindex="0" title="Type allocation in TEU and MT for each port of load and discharge. Each cell shows Allocation / Forecast / Booked. Ports loading via a call fold under it; the YRD ports share one allocation. Amber forecast = above allocation, green booked = at allocation, red = over. A dot means that discharge port comes before the load port. Hover a cell to release balance; Review appears when a request is waiting.">ⓘ How to read</span>
-      <span class="legend"><span class="mk pool">+</span> pool / approved <span class="mk rel">−</span> released · hover a cell for detail</span></div>
+      <span class="info" tabindex="0" title="Allocation, Forecast and Booked for each port of load (rows) and discharge (columns), in TEU and MT. Turn on Edit allocation to change numbers. Ports loading via a call fold under it; the YRD ports share one allocation. Hover a number for original / released / pool detail; hover a Booked cell to release that port of discharge's unused balance.">ⓘ How to read</span></div>
       <div class="acts"><button type="button" class="ghost sm" data-goto="tmpl|Allocation template">Template →</button><button type="button" class="ghost sm" data-togall="1">Expand all</button><button type="button" class="ghost sm" data-togall="0">Collapse all</button></div></div>
+      <div class="board-tools">Units<span class="seg2">${[['teu','TEU'],['both','TEU + MT']].map(([k,t])=>`<button type="button" data-bunits="${k}" aria-pressed="${bUnits===k}">${t}</button>`).join('')}</span>
+        Show<span class="seg2">${[['all','All'],['pct','Booked %'],['fva','Forecast vs allocation']].map(([k,t])=>`<button type="button" data-bshow="${k}" aria-pressed="${bShow===k}">${t}</button>`).join('')}</span>
+        <button type="button" class="bsw" data-bedit aria-pressed="${bEdit}"><i></i>Edit allocation</button></div>
       ${board(b,()=>true,{editable:true})}
+      <div class="board-key"><span><i style="background:var(--alloc-bg2);border:1px solid var(--line)"></i>Allocation (set by HQ)</span><span><b style="color:var(--bk)">Booked</b> in teal</span><span><i style="background:var(--warn-soft);box-shadow:inset 2px 0 0 var(--warn)"></i>Booked ≥ 85% of allocation</span><span><i style="background:var(--bad-soft);box-shadow:inset 2px 0 0 var(--bad)"></i>Over allocation</span><span><b style="color:var(--warn)">Amber forecast</b> = above allocation</span><span><button type="button" class="rdot" tabindex="-1" aria-hidden="true"></button>Request waiting for HQ</span><span><span class="mk pool">+</span>pool / approved <span class="mk rel">−</span>released <span class="mk ovr">✎</span>changed from template</span></div>
     </section>
     ${tmplPanel()}
 
@@ -2233,7 +2333,7 @@ function stageBar(items){
 // Fit the allocation board into the window: no sideways or downward scrolling. Scales down, never below 70%.
 function fitBoard(){
   const sec=[...document.querySelectorAll('#app [data-nav="Allocation board"]')].find(s=>!s.hidden); if(!sec) return;
-  const wrap=sec.querySelector('.tbl-wrap'), t=wrap&&wrap.querySelector('table.board'); if(!t) return;
+  const wrap=sec.querySelector('.tbl-wrap'), t=wrap&&wrap.querySelector('table.abd'); if(!t) return;
   wrap.classList.add('fit'); t.style.zoom=1;
   const top=wrap.getBoundingClientRect().top+window.scrollY;
   const availW=wrap.clientWidth-2, availH=window.innerHeight-top-14;
@@ -2353,6 +2453,9 @@ app.addEventListener('click',e=>{
     render(); toast(`Load list saved for ${nm(p)}`); return;
   }
   if(btn.dataset.tog){ const k=btn.dataset.tog; expanded.has(k)?expanded.delete(k):expanded.add(k); render(); return; }
+  if(btn.dataset.bunits){ bUnits=btn.dataset.bunits; render(); return; }
+  if(btn.dataset.bshow){ bShow=btn.dataset.bshow; render(); return; }
+  if('bedit' in btn.dataset){ bEdit=!bEdit; if(bEdit) bShow='all'; render(); return; }
   if(btn.dataset.togall){ BD(B).pols.forEach(pol=>{ const k=B+'|'+pol; btn.dataset.togall==='1'?expanded.add(k):expanded.delete(k); }); render(); return; }
   if(btn.dataset.opencell){ editCell=btn.dataset.opencell; render(); return; }
   if('closecell' in btn.dataset){ editCell=null; render(); return; }
