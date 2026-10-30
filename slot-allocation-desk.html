@@ -960,7 +960,7 @@ function handling(b,pod,fpd){
 }
 function addLog(m){ const d=new Date(); ALL.log.push({t:d.toLocaleDateString('en-GB',{day:'2-digit',month:'short'})+' '+d.toTimeString().slice(0,5),m:`${vtag()} ${BD(B).label}: ${m}`}); }
 
-/* ---- Next vessels: cargo through via ports ---- */
+/* ---- Upcoming voyages: cargo through via ports ---- */
 function hubsOf(b){ const s=new Set(); BD(b).pols.forEach(p=>{ if((BD(b).feeders[p]||[]).length) s.add(p); }); BD(b).pods.forEach(p=>{ if((BD(b).onward[p]||[]).length) s.add(p); }); return [...s]; }
 function flows(b,h){                                            // reads the voyage currently in S
   const join=S.bookings.filter(x=>x.b===b && feedInfo(b,x.port)?.hub===h);
@@ -1026,7 +1026,7 @@ function pipelinePanel(){
     if(BD(b).pols.includes(h) && (BD(b).feeders[h]||[]).length) body+=row(`Loading via ${sn(h)}`, BD(b).feeders[h].map(f=>f.port.slice(2)).join(', '), ()=>flows(b,h).join);
     if(isPod(b,h) && (BD(b).onward[h]||[]).length) body+=row(`T/S at ${sn(h)}`, 'onward to '+BD(b).onward[h].map(f=>f.port.slice(2)).join(', '), ()=>flows(b,h).ts);
   });
-  return `<section class="panel" id="pipeline" data-nav="Next vessels"><div class="ph"><div><h2>Next vessels</h2>
+  return `<section class="panel" id="pipeline" data-nav="Upcoming voyages"><div class="ph"><div><h2>Upcoming voyages</h2>
     <p>Booked cargo on this voyage and the next ${nv.length||'none'}. Plan hub handling, connecting services and rollover ahead of time.</p></div></div>
     <div class="tbl-wrap"><table><thead><tr><th>${BD(b).label}</th>${cols.map((c,i)=>`<th class="num ${i===0?'cur':''}">${c.vessel}<small>${c.id}${tag}${i===0?' · this voyage':` · ETA ${fmt(addDays(ROT[BD(b).calls[0]].eta,c.wk*7))}`}</small></th>`).join('')}${nv.length?`<th class="num">Next ${nv.length} total</th>`:''}</tr></thead><tbody>${body}</tbody></table></div></section>`;
 }
@@ -1084,7 +1084,7 @@ function routeStrip(){
       <span class="st-sub">${omitted(i)?'Omitted':`${fmt(E(i))}${isL?`<br>cut-off ${cutoff(E(i))}`:''}`}</span>
       ${body}</li>`;
   }).join('');
-  return `<div class="route" aria-label="Port rotation" data-nav="Rotation"><div class="route-key">Bars: booked / allocation at each load call · ↓ discharging · on the line: TEU spare on that leg (hover for tonnage and reefer) · faded calls belong to the ${BD(other).label.toLowerCase()} leg</div>
+  return `<div class="route" aria-label="Port rotation" data-nav="Port rotation"><div class="route-key">Bars: booked / allocation at each load call · ↓ discharging · on the line: TEU spare on that leg (hover for tonnage and reefer) · faded calls belong to the ${BD(other).label.toLowerCase()} leg</div>
     <ol class="route2" style="grid-template-columns:${ROT.map((c,i)=>inB.has(i)?'minmax(88px,1fr)':'72px').join(' ')}">${stops}</ol></div>`;
 }
 function connections(){
@@ -2071,7 +2071,7 @@ function heatPanel(){
     return `<td class="hm ${c}" title="${n0(v.teu)} / ${n0(e.teu)} TEU · ${n0(v.mt)} / ${n0(e.mt)} MT"><b>${Math.round(r*100)}%</b><small>${n0(v.teu)}/${n0(e.teu)}</small></td>`; };
   const rows=BD(b).pols.map(pol=>{ const ports=[pol,...feedersOf(b,pol)];
     return `<tr><td><span class="pname">${nm(pol)}${feedersOf(b,pol).length?`<small>incl. ports loading via ${sn(pol)}</small>`:''}</span></td>${cols.map(c=>withVoy(c.id,()=>{ const g=ports.filter(p=>origins(b).includes(p)); const e=vsum(g.map(p=>val(p).e)), v=vsum(g.map(p=>val(p).v)); return cell(e,v); })).join('')}</tr>`; }).join('');
-  return `<section class="panel" data-nav="Heatmap"><div class="ph"><div><h2>Heatmap · ${BD(b).label}</h2>
+  return `<section class="panel" data-nav="Utilisation heatmap"><div class="ph"><div><h2>Utilisation heatmap · ${BD(b).label}</h2>
     <p>Each load call against its allocation on every vessel in the plan. The higher of TEU or tonnage use sets the colour, so a weight-full port shows red even with TEU left.</p></div>
     <div class="field"><label for="hm-metric">Show</label><select id="hm-metric"><option value="max" ${heatMetric==='max'?'selected':''}>Higher of booked or forecast</option><option value="booked" ${heatMetric==='booked'?'selected':''}>Booked</option><option value="forecast" ${heatMetric==='forecast'?'selected':''}>Forecast</option></select></div></div>
     <div class="tbl-wrap"><table class="heat"><thead><tr><th>Load call</th>${cols.map(c=>`<th class="num ${c.id===V?'cur':''}">${c.vessel}<small>${c.id}${b==='WB'?'W':'E'} · ETA ${fmt(addDays(ROT[BD(b).calls[0]].eta,c.wk*7))}</small></th>`).join('')}</tr></thead><tbody>${rows}</tbody></table></div>
@@ -2082,13 +2082,13 @@ function heatPanel(){
 /* ================= Workspaces =================
    The desk is one page of panels; each workspace shows only the panels for one job.
    Today / My port opens with the voyage's stage and a list of what needs attention. */
-// Overview first (Planning: next vessels), then down into one vessel (Allocation). Today's list lives in the bell.
-const WS_HQ=[{id:'plan',label:'Planning'},{id:'tmpl',label:'Templates'},{id:'alloc',label:'Allocation'},{id:'accounts',label:'Space protection'},{id:'conn',label:'Connections'},{id:'perf',label:'Performance'},{id:'rules',label:'Rules & capacity'}];
+// Overview first (Planning: upcoming voyages), then down into one vessel (Allocation). Today's list lives in the bell.
+const WS_HQ=[{id:'plan',label:'Planning'},{id:'tmpl',label:'Templates'},{id:'alloc',label:'Allocation'},{id:'accounts',label:'Space protection'},{id:'conn',label:'Schedule & T/S'},{id:'perf',label:'Performance'},{id:'rules',label:'Rules & capacity'}];
 const WS_AG=[{id:'home',label:'My port'},{id:'book',label:'Book'},{id:'forecast',label:'Forecast'},{id:'pool',label:'Balance pool'},{id:'cargo',label:'My cargo'}];
 const WS_MAP_HQ={'Allocation board':'alloc','Allocation template':'tmpl','Additional loading':'alloc','Release allocation':'alloc','Balance pool':'alloc','Space protection':'accounts',
-  'Heatmap':'plan','Next vessels':'plan','Schedule changes':'plan','Connections':'conn','Intra-Asia onward':'conn','First-leg delays':'conn','Discharge plan':'conn',
+  'Utilisation heatmap':'plan','Upcoming voyages':'plan','Schedule changes':'conn','Connections':'conn','Intra-Asia onward':'conn','First-leg delays':'conn','Discharge plan':'conn',
   'Load list':'perf','Port performance':'perf','Release rules':'rules','Reefer plug BSA':'rules','Equipment & special cargo':'rules'};
-const WS_MAP_AG={'My allocation':'home','Book cargo':'book','Forecast':'forecast','Balance you can use':'pool','Ports ahead of you':'pool','First-leg delays':'cargo','Next vessels':'cargo'};
+const WS_MAP_AG={'My allocation':'home','Book cargo':'book','Forecast':'forecast','Balance you can use':'pool','Ports ahead of you':'pool','First-leg delays':'cargo','Upcoming voyages':'cargo'};
 const WS={HQ:'today',AG:'home'};
 try{ const w=JSON.parse(localStorage.getItem('sad-ws')||'null'); if(w){ WS.HQ=w.HQ||WS.HQ; WS.AG=w.AG||WS.AG; } }catch(e){}
 const wsList = () => role==='HQ'?WS_HQ:WS_AG;
@@ -2132,7 +2132,7 @@ function hqItems(){
   const L=legs(), over=L.map((l,i)=>({l,i})).filter(x=>DIMS.some(d=>x.l.alloc[d.k]>VESSEL.cap[d.k])||x.l.rf.booked+x.l.rf.held>VESSEL.plugs);
   if(over.length) it.push({sev:'act',ws:'alloc',nav:'Allocation board',title:`Vessel over capacity on ${over.length} leg${over.length>1?'s':''}`,detail:over.map(x=>`${ROT[x.i].port.slice(2)}→${ROT[x.i+1].port.slice(2)}`).join(', '),btn:'Open board'});
   const om=Object.keys(S.sched.omit).filter(i=>!S.sched.moved[i]);
-  if(om.length) it.push({sev:'act',ws:'plan',nav:'Schedule changes',title:`Omitted call${om.length>1?'s':''} with cargo still on this vessel`,detail:om.map(i=>nm(ROT[i].port)).join(', '),btn:'Move cargo'});
+  if(om.length) it.push({sev:'act',ws:'conn',nav:'Schedule changes',title:`Omitted call${om.length>1?'s':''} with cargo still on this vessel`,detail:om.map(i=>nm(ROT[i].port)).join(', '),btn:'Move cargo'});
   // Intra-Asia bunching / unfilled sailings caused by first-leg timing
   BD(b).pods.forEach(pod=>[...new Set((BD(b).onward[pod]||[]).filter(f=>f.svc&&CONN_SCHED[pod+'|'+f.svc]).map(f=>f.svc))].forEach(svc=>{
     const W=iaWeeks(b,pod,svc), cap=svcCapOf(b,pod,svc); let bunch=0, unf=0;
@@ -2144,7 +2144,7 @@ function hqItems(){
   if(risky.length) it.push({sev:'watch',ws:'conn',nav:'Connections',title:`${risky.length} tight connection${risky.length>1?'s':''} with cargo`,detail:risky.join(', '),btn:'View'});
   const nv=nextVoys(); let rq=Z(), fo=Z();
   nv.forEach(c=>withVoy(c.id,()=>origins(b).forEach(p=>{ rq=vadd(rq,pendP(b,p)); fo=vadd(fo,fcOver(b,p)); })));
-  if(vany(rq)||vany(fo)) it.push({sev:'watch',ws:'plan',nav:'Next vessels',title:'Rollover building on the next vessels',detail:[vany(rq)?`${tot(rq)} waiting approval`:'',vany(fo)?`forecast ${tot(fo)} above allocation`:''].filter(Boolean).join(' · '),btn:'Plan'});
+  if(vany(rq)||vany(fo)) it.push({sev:'watch',ws:'plan',nav:'Upcoming voyages',title:'Rollover building on the next vessels',detail:[vany(rq)?`${tot(rq)} waiting approval`:'',vany(fo)?`forecast ${tot(fo)} above allocation`:''].filter(Boolean).join(' · '),btn:'Plan'});
   const noFc=origins(b).filter(p=>loadsIn(b,p)&&!fcLocked(b,p)&&daysTo(fcLockDate(b,p))<=7&&BD(b).pods.some(d=>vany(base(b,p,d))&&!hasFc(b,p,d)));
   if(noFc.length) it.push({sev:'watch',ws:'alloc',nav:'Allocation board',title:`${noFc.length} port${noFc.length>1?'s':''} still missing forecast, locking within 7 days`,detail:noFc.map(nm).join(', '),btn:'Open board'});
   const noLoad=origins(b).filter(p=>sailed(b,p)&&usedP(b,p).teu&&!loadedP(b,p));
@@ -2196,7 +2196,7 @@ function withBound(b,fn){ const k=B; B=b; try{ return fn(); } finally{ B=k; } }
 let stageSel=null, stagePop=false;                                         // stagePop: stage drop-down open on the Allocation board
 // Which stages each kind of action belongs to, by the screen it opens.
 const PH_BY_NAV={'Additional loading':[1,2],'Release rules':[2],'Allocation board':[0,1,2],'Schedule changes':[1,2],'First-leg delays':[1,2],'Connections':[1,2],
-  'Next vessels':[0,1],'Load list':[3],'Balance pool':[1,2],'Forecast':[0,1],'Book cargo':[1,2],'Balance you can use':[1,2]};
+  'Upcoming voyages':[0,1],'Load list':[3],'Balance pool':[1,2],'Forecast':[0,1],'Book cargo':[1,2],'Balance you can use':[1,2]};
 const phOf = i => PH_BY_NAV[i.nav] || [0,1,2,3];
 const STAGE_GO_HQ=[['alloc','Allocation board','Open allocation board'],['alloc','Allocation board','Open allocation board'],['rules','Release rules','Open release rules'],['perf','Load list','Open load list']];
 const STAGE_GO_AG=[['forecast','Forecast','Open forecast'],['book','Book cargo','Book cargo'],['book','Book cargo','Book cargo'],['cargo','','Open my cargo']];
@@ -2255,8 +2255,9 @@ function applyWorkspace(){
   const vh=app.querySelector('.voyage'); if(vh){ vh.hidden = cur==='alloc'||cur==='tmpl'; vh.insertAdjacentHTML('beforeend', stageBar(LAST_ITEMS)); }
   if(cur==='alloc' && hq){ const bh=app.querySelector('.board-panel .bh'); if(bh){ const ph=phaseOf(B); if(stagePop&&stageSel===null) stageSel=ph.i;
     bh.insertAdjacentHTML('beforeend', `<span class="stage-pop-wrap"><button type="button" class="stage-pill ${stagePop?'on':''}" data-stagepop aria-expanded="${stagePop}">Stage: <b>${PHASES[ph.i]}</b> ▾</button>${stagePop?`<div class="stage-pop" role="dialog" aria-label="Voyage stage">${stageBar(LAST_ITEMS)}</div>`:''}</span>`); } }
-  // Planning reads top-down: next vessels first, then the heatmap and schedule changes.
-  if(cur==='plan' && grid) ['Schedule changes','Heatmap','Next vessels'].forEach(nv=>{ const el=grid.querySelector(`:scope > [data-nav="${nv}"]`); if(el) grid.insertBefore(el,grid.firstChild); });
+  // Planning reads top-down: upcoming voyages, then the heatmap. Schedule & T/S opens on the schedule changes.
+  if(cur==='conn' && grid){ const el=grid.querySelector(':scope > [data-nav="Schedule changes"]'); if(el) grid.insertBefore(el,grid.firstChild); }
+  if(cur==='plan' && grid) ['Utilisation heatmap','Upcoming voyages'].forEach(nv=>{ const el=grid.querySelector(`:scope > [data-nav="${nv}"]`); if(el) grid.insertBefore(el,grid.firstChild); });
   const n=id=>LAST_ITEMS.filter(i=>i.sev!=='info'&&i.ws===id).length;
   document.getElementById('ws').innerHTML = wsList().map(w=>{ const c=n(w.id);
     return `<a href="#" data-wsgo="${w.id}" class="${w.id===cur?'on':''}">${w.label}${c?`<span class="badge ${LAST_ITEMS.some(i=>i.sev==='act'&&i.ws===w.id)?'act':''}">${c}</span>`:''}</a>`
