@@ -818,7 +818,7 @@ function seedAll(){
 
 let ALL, S, V, role, B='WB', armed=null;
 const dismissed=new Set();
-try{ ALL=JSON.parse(localStorage.getItem('sad13-all')||'null'); role=localStorage.getItem('sad4-role'); B=localStorage.getItem('sad4-bound')||'WB'; V=localStorage.getItem('sad4-voy'); }catch(e){}
+try{ ALL=JSON.parse(localStorage.getItem('sad14-all')||'null'); role=localStorage.getItem('sad4-role'); B=localStorage.getItem('sad4-bound')||'WB'; V=localStorage.getItem('sad4-voy'); }catch(e){}
 if(!ALL||!ALL.voyages) ALL=seedAll();
 if(!V||!ALL.voyages[V]) V=VOYAGES[0].id;
 Object.values(ALL.voyages).forEach(s=>{ s.forecast=s.forecast||{}; s.requests=s.requests||[]; s.notices=s.notices||[]; s.extra=s.extra||[]; s.loaded=s.loaded||{};
@@ -839,7 +839,7 @@ let askDraft=null, editCell=null;
 const expanded=new Set();                                         // load calls whose "loading via" ports are unfolded
 if(!role) role='HQ';
 if(!BOUNDS[B]) B='WB';
-function save(){ try{localStorage.setItem('sad13-all',JSON.stringify(ALL));localStorage.setItem('sad4-role',role);localStorage.setItem('sad4-bound',B);localStorage.setItem('sad4-voy',V)}catch(e){} }
+function save(){ try{localStorage.setItem('sad14-all',JSON.stringify(ALL));localStorage.setItem('sad4-role',role);localStorage.setItem('sad4-bound',B);localStorage.setItem('sad4-voy',V)}catch(e){} }
 const curVoy = () => VOYAGES.find(x=>x.id===V);
 const voyIdx = () => VOYAGES.findIndex(x=>x.id===V);
 const nextVoys = (n=3) => VOYAGES.slice(voyIdx()+1, voyIdx()+1+n);
@@ -1102,7 +1102,7 @@ function pipelinePanel(){
   body+=row('Booked','',()=>vsum(origins(b).map(p=>usedP(b,p))));
   if(role==='HQ'){ const cv=cols.map(c=>withVoy(c.id,()=>sumf(origins(b),p=>cmP(b,p))));
     body+=`<tr><td><span class="pname">Contribution booked<small>USD</small></span></td>${cv.map(v=>`<td class="num">${v?usd(v):'<span class="muted">—</span>'}</td>`).join('')}${nv.length?`<td class="num"><b>${usd(cv.slice(1).reduce((a,c)=>a+c,0))}</b></td>`:''}</tr>`; }
-  body+=row('Forecast above allocation','Early rollover warning',()=>vsum(origins(b).map(p=>fcOver(b,p))),true);
+  body+=row('Forecast above allocation','Early rollover warning · port pairs over, not offset by pairs under',()=>vsum(origins(b).map(p=>fcOver(b,p))),true);
   body+=row('Waiting HQ approval','Booked beyond allocation',()=>vsum(origins(b).map(p=>pendP(b,p))));
   if(role!=='HQ' && loadsIn(b,role)){
     body+=row(`Your forecast · ${sn(role)}`,'',()=>fcP(b,role));
@@ -1715,9 +1715,17 @@ function agentView(){
   </div>`;
 }
 
+// Sample data: a waiting request only makes sense once the port pair is full, so after a larger class template
+// top the bookings up to the new allocation and keep the forecast at least booked + requested.
+function fitSampleRequests(id){ withVoy(id,()=>S.requests.filter(r=>r.status==='pending').forEach(r=>{
+  const e=eff(r.b,r.port,r.pod), u=used(r.b,r.port,r.pod), gap=vpos(vsub(e,u));
+  if(gap.teu>0) S.bookings.push({id:uid(),b:r.b,ref:r.port.slice(2)+(r.b==='WB'?'W':'E')+'F'+gap.teu+'-'+id.slice(2),port:r.port,pod:r.pod,fpd:r.pod,teu:gap.teu,mt:gap.mt,rf:0,rfTeu:0});
+  const k=K(r.b,aKey(r.b,r.port),r.pod), need=vadd(vadd(e,pick(r)),{teu:5,mt:60}), f=S.forecast[k]||Z();
+  S.forecast[k]={teu:Math.max(f.teu||0,need.teu), mt:Math.max(f.mt||0,need.mt)};
+})); }
 function render(){
   // First run with size classes: give the larger vessels their class template (never below bookings).
-  if(ALL.needClassFit){ delete ALL.needClassFit; VOYAGES.filter(v=>ALL.voyages[v.id].cls!=='1800').forEach(v=>Object.keys(BOUNDS).forEach(b=>applyTemplate(b,[v.id],true))); }
+  if(ALL.needClassFit){ delete ALL.needClassFit; VOYAGES.filter(v=>ALL.voyages[v.id].cls!=='1800').forEach(v=>Object.keys(BOUNDS).forEach(b=>applyTemplate(b,[v.id],true))); VOYAGES.forEach(v=>fitSampleRequests(v.id)); }
   const vs=document.getElementById('voy'); vs.innerHTML=VOYAGES.map(c=>`<option value="${c.id}">${c.vessel} ${c.id} · ${CLASSES[ALL.voyages[c.id].cls].label}</option>`).join(''); vs.value=V;
   const sel=document.getElementById('role'); sel.innerHTML=roleOptions(); sel.value=role;
   Object.keys(BOUNDS).forEach(b=>document.getElementById('bnd-'+b).setAttribute('aria-pressed',String(b===B)));
