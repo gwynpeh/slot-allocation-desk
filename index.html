@@ -543,6 +543,13 @@ table.heat td.hm{text-align:center;font-variant-numeric:tabular-nums;border:2px 
 table.heat td.hm b{display:block;font-size:.95rem}
 table.heat td.hm small{font-size:.72rem;color:var(--muted)}
 .hm0{background:var(--navy-soft)} .hm1{background:var(--ok-soft)} .hm2{background:var(--warn-soft)} .hm3{background:var(--bad);color:#fff;font-weight:700} .hm3 b,.hm3 small,.hm3 .muted{color:#fff!important} .hmn{color:var(--muted)}
+/* Utilisation heatmap: diverging. Red = unused space, grey = on target, blue = over allocation. */
+:root{--hu-empty:#F87171;--hu-empty-ink:#7F1D1D;--hu-low:#FDE2E2;--hu-ok:#E5E7EB;--hu-over:#1D4ED8}
+:root[data-theme="dark"]{--hu-empty:#B91C1C;--hu-empty-ink:#FFF;--hu-low:#4A1D24;--hu-ok:#2A2F3A;--hu-over:#3B82F6}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--hu-empty:#B91C1C;--hu-empty-ink:#FFF;--hu-low:#4A1D24;--hu-ok:#2A2F3A;--hu-over:#3B82F6}}
+.hu-empty{background:var(--hu-empty)} .hu-empty b,.hu-empty small{color:var(--hu-empty-ink)!important}
+.hu-low{background:var(--hu-low)} .hu-ok{background:var(--hu-ok)}
+.hu-over{background:var(--hu-over)} .hu-over b,.hu-over small{color:#fff!important}
 .hm-key{display:inline-block;width:12px;height:12px;border-radius:3px;vertical-align:middle;margin:0 4px 0 10px}
 .chip.dgc{background:var(--warn-soft);color:var(--warn)}
 .chip.oogc{background:var(--navy-soft);color:var(--navy)}
@@ -2192,15 +2199,15 @@ let heatMetric='max';
 function heatPanel(){
   const b=B, cols=VOYAGES;
   const val=(p)=>{ const e=effP(b,p), u=usedP(b,p), f=fcP(b,p); const v=heatMetric==='booked'?u:heatMetric==='forecast'?f:{teu:Math.max(u.teu,f.teu),mt:Math.max(u.mt,f.mt)}; return {e,v}; };
-  const cell=(e,v)=>{ if(!e.teu) return '<td class="hm hmn">—</td>'; const r=Math.max(v.teu/e.teu, e.mt?v.mt/e.mt:0), c=r>1?'hm3':r>=0.9?'hm2':r>=0.6?'hm1':'hm0';
+  const cell=(e,v)=>{ if(!e.teu) return '<td class="hm hmn">—</td>'; const r=Math.max(v.teu/e.teu, e.mt?v.mt/e.mt:0), c=r>1?'hu-over':r>=0.9?'hu-ok':r>=0.6?'hu-low':'hu-empty';
     return `<td class="hm ${c}" title="${n0(v.teu)} / ${n0(e.teu)} TEU · ${n0(v.mt)} / ${n0(e.mt)} MT"><b>${Math.round(r*100)}%</b><small>${n0(v.teu)}/${n0(e.teu)}</small></td>`; };
   const rows=BD(b).pols.map(pol=>{ const ports=[pol,...feedersOf(b,pol)];
     return `<tr><td><span class="pname">${nm(pol)}${feedersOf(b,pol).length?`<small>incl. ports loading via ${sn(pol)}</small>`:''}</span></td>${cols.map(c=>withVoy(c.id,()=>{ const g=ports.filter(p=>origins(b).includes(p)); const e=vsum(g.map(p=>val(p).e)), v=vsum(g.map(p=>val(p).v)); return cell(e,v); })).join('')}</tr>`; }).join('');
   return `<section class="panel" data-nav="Utilisation heatmap"><div class="ph"><div><h2>Utilisation heatmap · ${BD(b).label}</h2>
-    <p>Each load call against its allocation on every vessel in the plan. The higher of TEU or tonnage use sets the colour, so a weight-full port shows red even with TEU left.</p></div>
+    <p>Each load call against its allocation on every vessel in the plan. Red is space going empty, grey is on target, blue is over allocation. The higher of TEU or tonnage use sets the colour, so a weight-full port shows blue even with TEU left.</p></div>
     <div class="field"><label for="hm-metric">Show</label><select id="hm-metric"><option value="max" ${heatMetric==='max'?'selected':''}>Higher of booked or forecast</option><option value="booked" ${heatMetric==='booked'?'selected':''}>Booked</option><option value="forecast" ${heatMetric==='forecast'?'selected':''}>Forecast</option></select></div></div>
     <div class="tbl-wrap"><table class="heat"><thead><tr><th>Load call</th>${cols.map(c=>`<th class="num ${c.id===V?'cur':''}">${c.vessel}<small>${c.id}${b==='WB'?'W':'E'} · ETA ${fmt(addDays(ROT[BD(b).calls[0]].eta,c.wk*7))}</small></th>`).join('')}</tr></thead><tbody>${rows}</tbody></table></div>
-    <p class="note"><span class="hm-key hm0"></span> under 60% <span class="hm-key hm1"></span> 60–90% <span class="hm-key hm2"></span> 90–100% <span class="hm-key hm3"></span> over allocation</p>
+    <p class="note"><span class="hm-key hu-empty"></span> under 60% · space going empty <span class="hm-key hu-low"></span> 60–90% <span class="hm-key hu-ok"></span> 90–100% · on target <span class="hm-key hu-over"></span> over allocation · rollover risk</p>
   </section>`;
 }
 
