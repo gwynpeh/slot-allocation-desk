@@ -443,10 +443,6 @@ tr.warnrow td:first-child{box-shadow:inset 4px 0 0 var(--warn)!important}
 tr.warnrow .pname{color:var(--warn);font-weight:700}
 tr.warnrow .pname small{color:var(--warn);opacity:.85}
 tr.warnrow td.num b,tr.warnrow td.num .wt{color:var(--warn)}
-tr.subrow td{padding-top:6px;padding-bottom:6px}
-tr.subrow .pname{font-weight:500;padding-left:22px;position:relative}
-tr.subrow .tree{position:absolute;left:6px;top:-2px;color:var(--warn)}
-tr.subrow td.num b{font-weight:600}
 tr.warnrow .wi{display:inline-grid;place-items:center;width:16px;height:16px;border-radius:50%;background:var(--warn);color:#fff;font-size:.7rem;font-weight:800;margin-right:6px;vertical-align:1px}
 /* Allocation board: one row per measure, Allocation / Forecast / Booked as columns. Colour: soft allocation band, teal booked, amber/red only for warnings. */
 :root{--alloc-bg:#FAF9FF;--alloc-bg2:#F5F3FF;--bk:#0F766E}
@@ -949,10 +945,6 @@ const fcLockDate = (b,p) => addDays(E(lci(b,p)),-7);
 const fcLocked = (b,p) => TODAY >= fcLockDate(b,p);
 const reqs = (b,p,st) => S.requests.filter(r=>r.b===b&&(!p||aKey(b,r.port)===aKey(b,p))&&(!st||r.status===st));
 const pendP = (b,p) => vsum(reqs(b,p,'pending').map(pick));
-// Expected rollover per port pair: forecast above allocation, never less than what is already booked over and waiting HQ.
-// Splits into booked-and-waiting plus forecast-not-booked-yet, so the parts always add up to the whole.
-const rollP = (b,p) => vsum(BD(b).pods.map(d=>{ const fo=hasFc(b,p,d)?vpos(vsub(fc(b,p,d),eff(b,p,d))):Z(), pq=vsum(reqs(b,p,'pending').filter(r=>r.pod===d).map(pick));
-  return Object.fromEntries(DIMS.map(x=>[x.k,Math.max(fo[x.k],pq[x.k])])); }));
 
 /* ---- Reefer ---- */
 const rfA = (b,p) => S.rfAlloc[K(b,aKey(b,p))];                       // undefined = no port RF BSA, shares vessel plugs
@@ -1091,16 +1083,14 @@ function reminder(){
 function pipelinePanel(){
   const b=B, nv=nextVoys(), cols=[curVoy(),...nv], tag=b==='WB'?'W':'E', span=cols.length+1+(nv.length?1:0);
   const cell=v=>`<td class="num">${vany(v)?`<b>${n0(v.teu)}</b> TEU<br><span class="wt">${n0(v.mt)} MT</span>`:'<span class="muted">—</span>'}</td>`;
-  const row=(label,sub,fn,warn,child)=>{ const vals=cols.map(c=>withVoy(c.id,fn)), hot=warn&&vals.some(vany); return `<tr class="${hot?'warnrow':''} ${child?'subrow':''}"><td><span class="pname">${child?'<span class="tree" aria-hidden="true">└</span>':''}${hot?'<span class="wi" aria-hidden="true">!</span>':''}${label}${sub?`<small>${sub}</small>`:''}</span></td>${vals.map(cell).join('')}${nv.length?cell(vsum(vals.slice(1))):''}</tr>`; };
+  const row=(label,sub,fn,warn)=>{ const vals=cols.map(c=>withVoy(c.id,fn)), hot=warn&&vals.some(vany); return `<tr${hot?' class="warnrow"':''}><td><span class="pname">${hot?'<span class="wi" aria-hidden="true">!</span>':''}${label}${sub?`<small>${sub}</small>`:''}</span></td>${vals.map(cell).join('')}${nv.length?cell(vsum(vals.slice(1))):''}</tr>`; };
   let body=`<tr class="sec"><td colspan="${span}">${BD(b).label} totals</td></tr>`;
   body+=row('Allocated','',()=>vsum(origins(b).map(p=>effP(b,p))));
   body+=row('Forecast','Entered by port agents',()=>vsum(origins(b).map(p=>fcP(b,p))));
   body+=row('Booked','',()=>vsum(origins(b).map(p=>usedP(b,p))));
   if(role==='HQ'){ const cv=cols.map(c=>withVoy(c.id,()=>sumf(origins(b),p=>cmP(b,p))));
     body+=`<tr><td><span class="pname">Contribution booked<small>USD</small></span></td>${cv.map(v=>`<td class="num">${v?usd(v):'<span class="muted">—</span>'}</td>`).join('')}${nv.length?`<td class="num"><b>${usd(cv.slice(1).reduce((a,c)=>a+c,0))}</b></td>`:''}</tr>`; }
-  body+=row('Expected rollover','Forecast above allocation · port pairs over, not offset by pairs under',()=>vsum(origins(b).map(p=>rollP(b,p))),true);
-  body+=row('Booked, waiting HQ approval','Already over allocation · decide now',()=>vsum(origins(b).map(p=>pendP(b,p))),false,true);
-  body+=row('Forecast, not booked yet','Watch as bookings come in',()=>vpos(vsub(vsum(origins(b).map(p=>rollP(b,p))),vsum(origins(b).map(p=>pendP(b,p))))),false,true);
+  body+=row('Rollover · waiting HQ approval','Booked over allocation · approve or reject before cut-off',()=>vsum(origins(b).map(p=>pendP(b,p))),true);
   if(role!=='HQ' && loadsIn(b,role)){
     body+=row(`Your forecast · ${sn(role)}`,'',()=>fcP(b,role));
     body+=row(`Your bookings · ${sn(role)}`,'',()=>usedP(b,role));
