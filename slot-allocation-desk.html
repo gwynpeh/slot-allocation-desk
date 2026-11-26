@@ -530,7 +530,7 @@ table.iaw tr.tot td{border-bottom:2px solid var(--line)}
 table.heat td.hm{text-align:center;font-variant-numeric:tabular-nums;border:2px solid var(--surface)}
 table.heat td.hm b{display:block;font-size:.95rem}
 table.heat td.hm small{font-size:.72rem;color:var(--muted)}
-.hm0{background:var(--navy-soft)} .hm1{background:var(--ok-soft)} .hm2{background:var(--warn-soft)} .hm3{background:var(--bad-soft)} .hmn{color:var(--muted)}
+.hm0{background:var(--navy-soft)} .hm1{background:var(--ok-soft)} .hm2{background:var(--warn-soft)} .hm3{background:var(--bad);color:#fff;font-weight:700} .hm3 b,.hm3 small,.hm3 .muted{color:#fff!important} .hmn{color:var(--muted)}
 .hm-key{display:inline-block;width:12px;height:12px;border-radius:3px;vertical-align:middle;margin:0 4px 0 10px}
 .chip.dgc{background:var(--warn-soft);color:var(--warn)}
 .chip.oogc{background:var(--navy-soft);color:var(--navy)}
@@ -1057,26 +1057,25 @@ function reminder(){
   const key=V+B+role; if(dismissed.has(key)) return '';
   // HQ sees every port; an agent sees its own port, plus the ports grouped under it when it is a load call.
   const mine = p => role==='HQ' || p===role || loadCall(B,p)===role;
-  const rows=[]; let allRq=Z(), allFo=Z();
+  const rows=[]; let allRq=Z();
   nv.forEach(c=>{
-    const items=withVoy(c.id,()=>origins(B).filter(mine).map(p=>({p,rq:pendP(B,p),fo:fcOver(B,p),u:usedP(B,p),a:effP(B,p)})).filter(r=>vany(r.rq)||vany(r.fo)));
-    items.forEach(r=>{ allRq=vadd(allRq,r.rq); allFo=vadd(allFo,r.fo); rows.push({c,...r}); });
+    const items=withVoy(c.id,()=>origins(B).filter(mine).map(p=>({p,rq:pendP(B,p),u:usedP(B,p),a:effP(B,p)})).filter(r=>vany(r.rq)));
+    items.forEach(r=>{ allRq=vadd(allRq,r.rq); rows.push({c,...r}); });
   });
   if(!rows.length) return '';
   const vs=new Set(rows.map(r=>r.c.id)).size, ps=new Set(rows.map(r=>r.p)).size, tag=B==='WB'?'W':'E';
   const cell=v=>vany(v)?`<b>${n0(v.teu)}</b> TEU<br><span class="wt">${n0(v.mt)} MT</span>`:'<span class="muted">—</span>';
   return `<section class="panel notice" role="status"><div class="ph"><div><div class="eyebrow">Rollover alert · next ${nv.length} vessels ${BD(B).label.toLowerCase()}</div>
       <div class="alert-sum">
-        ${vany(allRq)?`<span class="stat"><span>Waiting HQ approval</span><b>${tot(allRq)}</b></span>`:''}
-        ${vany(allFo)?`<span class="stat"><span>Forecast above allocation</span><b>${tot(allFo)}</b></span>`:''}
+        <span class="stat"><span>Booked over allocation · waiting HQ approval</span><b>${tot(allRq)}</b></span>
         <span class="stat"><span>Affected</span><b>${ps} port${ps===1?'':'s'} · ${vs} vessel${vs===1?'':'s'}</b></span>
       </div></div>
       <div class="acts"><a href="#pipeline" class="lnk">See by vessel</a><button type="button" class="ghost" data-dismiss>Dismiss</button></div></div>
     <details class="fold"><summary>Show ports</summary>
-      <div class="tbl-wrap"><table><thead><tr><th>Port of load</th><th>Vessel</th><th class="num">Waiting HQ</th><th class="num">Forecast over</th><th class="num">Booked / allocation</th></tr></thead><tbody>${
+      <div class="tbl-wrap"><table><thead><tr><th>Port of load</th><th>Vessel</th><th class="num">Waiting HQ approval</th><th class="num">Booked / allocation</th></tr></thead><tbody>${
         rows.map(r=>{ const fi=feedInfo(B,r.p); return `<tr><td><span class="pname">${nm(r.p)}<small>${fi?`Loading via ${sn(fi.hub)}`:'Vessel call'}</small></span></td>
           <td><span class="pname">${r.c.vessel}<small>${r.c.id}${tag} · ETA ${fmt(addDays(ROT[BD(B).calls[0]].eta,r.c.wk*7))}</small></span></td>
-          <td class="num">${cell(r.rq)}</td><td class="num">${cell(r.fo)}</td><td class="num">${n0(r.u.teu)} / ${n0(r.a.teu)} TEU</td></tr>`; }).join('')
+          <td class="num">${cell(r.rq)}</td><td class="num">${n0(r.u.teu)} / ${n0(r.a.teu)} TEU</td></tr>`; }).join('')
       }</tbody></table></div></details></section>`;
 }
 
