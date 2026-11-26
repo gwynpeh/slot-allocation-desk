@@ -2220,13 +2220,13 @@ function heatPanel(){
    The desk is one page of panels; each workspace shows only the panels for one job.
    Today / My port opens with the voyage's stage and a list of what needs attention. */
 // Overview first (Planning: upcoming voyages), then down into one vessel (Allocation). Today's list lives in the bell.
-const WS_HQ=[{id:'plan',label:'Planning'},{id:'tmpl',label:'Templates'},{id:'alloc',label:'Allocation'},{id:'accounts',label:'Space protection'},{id:'conn',label:'Schedule & T/S'},{id:'perf',label:'Performance'},{id:'rules',label:'Rules & capacity'}];
+const WS_HQ=[{id:'tmpl',label:'Templates'},{id:'plan',label:'Planning'},{id:'alloc',label:'Allocation'},{id:'accounts',label:'Space protection'},{id:'conn',label:'Schedule & T/S'},{id:'perf',label:'Performance'},{id:'rules',label:'Rules & capacity'}];
 const WS_AG=[{id:'home',label:'My port'},{id:'book',label:'Book'},{id:'forecast',label:'Forecast'},{id:'pool',label:'Balance pool'},{id:'cargo',label:'My cargo'}];
 const WS_MAP_HQ={'Allocation board':'alloc','Allocation template':'tmpl','Additional loading':'alloc','Release allocation':'alloc','Balance pool':'alloc','Space protection':'accounts',
   'Utilisation heatmap':'plan','Upcoming voyages':'plan','Schedule changes':'conn','Connections':'conn','Intra-Asia onward':'conn','First-leg delays':'conn','Discharge plan':'conn',
   'Load list':'perf','Port performance':'perf','Release rules':'rules','Reefer plug BSA':'rules','Equipment & special cargo':'rules'};
 const WS_MAP_AG={'My allocation':'home','Book cargo':'book','Forecast':'forecast','Balance you can use':'pool','Ports ahead of you':'pool','First-leg delays':'cargo','Upcoming voyages':'cargo'};
-const WS={HQ:'today',AG:'home'};
+const WS={HQ:'plan',AG:'home'};                                    // HQ opens on Planning; Templates sits above it as the set-up step
 try{ const w=JSON.parse(localStorage.getItem('sad-ws')||'null'); if(w){ WS.HQ=w.HQ||WS.HQ; WS.AG=w.AG||WS.AG; } }catch(e){}
 const wsList = () => role==='HQ'?WS_HQ:WS_AG;
 const curWs = () => { const k=role==='HQ'?'HQ':'AG'; if(!wsList().some(w=>w.id===WS[k])) WS[k]=wsList()[0].id; return WS[k]; };
