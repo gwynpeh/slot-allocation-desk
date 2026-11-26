@@ -651,7 +651,7 @@ const BOUNDS = {
     onward:{
       SGSIN:[{port:'IDJKT',svc:'JKS'},{port:'IDSUB',svc:'JKS'},{port:'VNSGN',svc:'VCS'}],
       MYWSP:[{port:'IDBLW',svc:'SPE'},{port:'MYPEN',svc:'WS2'}],
-      INNSA:[], INMUN:[], PKKHI:[]                                    // westbound ends in the Indian subcontinent: no onward legs
+      INNSA:[], INMUN:[{port:'AEJEA',svc:'WS6'}], PKKHI:[]            // westbound: only Jebel Ali tranships, via Mundra
     }
   },
   EB:{label:'Eastbound', voy:'0412E', calls:[5,6,7,8,9,10], pols:['INNSA','INMUN','PKKHI','MYWSP','SGSIN'], pods:['MYWSP','SGSIN','CNSHA'], mtPerTeu:20,
@@ -705,7 +705,7 @@ function seed(){
   // [bound, POL, POD, final dest, TEU, MT, reefer units (plugs), reefer TEU]
   const bk = [
     ['WB','CNSHA','SGSIN','SGSIN',30,330],['WB','CNSHA','SGSIN','IDJKT',10,110],['WB','CNSHA','MYWSP','MYWSP',20,220],['WB','CNSHA','MYWSP','IDBLW',10,110],
-    ['WB','CNSHA','INNSA','INNSA',70,770,6,12],['WB','CNSHA','INNSA','INNSA',30,330],['WB','CNSHA','INMUN','INMUN',60,660],['WB','CNSHA','INMUN','INMUN',20,220],['WB','CNSHA','PKKHI','PKKHI',40,440],
+    ['WB','CNSHA','INNSA','INNSA',70,770,6,12],['WB','CNSHA','INNSA','INNSA',30,330],['WB','CNSHA','INMUN','INMUN',60,660],['WB','CNSHA','INMUN','AEJEA',20,220],['WB','CNSHA','PKKHI','PKKHI',40,440],
     ['WB','CNZJG','INNSA','INNSA',30,330],['WB','CNNKG','INMUN','INMUN',12,130],
     ['WB','CNNGB','SGSIN','SGSIN',12,130,3,6],['WB','CNNGB','SGSIN','VNSGN',6,70],
     ['WB','CNNGB','INNSA','INNSA',90,990],['WB','CNNGB','INNSA','INNSA',40,440,4,8],['WB','CNNGB','INMUN','INMUN',50,550],['WB','CNNGB','PKKHI','PKKHI',20,220],
@@ -739,7 +739,7 @@ function seed(){
     claims:[{id:uid(),b:'WB',from:'CNSHA',port:'CNNGB',pod:'INNSA',teu:20,mt:220}],
     forecast:{}, requests:[], notices:[], extra:[], contracts:[], ruleRuns:{}, sched:{omit:{},delay:{},moved:{},blank:false},
     // Intra-Asia onward limits. onCap: max TEU from one port of load into one onward destination. svcCap: max intake per connecting service at the hub.
-    onCap:{'EB|INNSA|IDJKT':{teu:5,mt:100},'EB|PKKHI|IDJKT':{teu:20,mt:450},'EB|INMUN|VNSGN':{teu:30,mt:700},'EB|INNSA|IDBLW':{teu:25,mt:500}},
+    onCap:{'EB|INNSA|IDJKT':{teu:5,mt:100},'EB|PKKHI|IDJKT':{teu:20,mt:450},'EB|INMUN|VNSGN':{teu:30,mt:700},'EB|INNSA|IDBLW':{teu:25,mt:500},'WB|CNSHA|AEJEA':{teu:20,mt:240}},
     svcCap:{'EB|SGSIN|JKS':{teu:40,mt:850},'EB|SGSIN|VCS':{teu:40,mt:900},'EB|MYWSP|SPE':{teu:30,mt:620}},
     // Reefer plug BSA released to individual ports. Ports not listed book from the vessel's free plugs.
     rfAlloc:{'WB|CNSHA':6,'WB|CNNGB':15,'WB|SGSIN':10,'EB|INNSA':40,'EB|PKKHI':10},
@@ -818,7 +818,7 @@ function seedAll(){
 
 let ALL, S, V, role, B='WB', armed=null;
 const dismissed=new Set();
-try{ ALL=JSON.parse(localStorage.getItem('sad15-all')||'null'); role=localStorage.getItem('sad4-role'); B=localStorage.getItem('sad4-bound')||'WB'; V=localStorage.getItem('sad4-voy'); }catch(e){}
+try{ ALL=JSON.parse(localStorage.getItem('sad16-all')||'null'); role=localStorage.getItem('sad4-role'); B=localStorage.getItem('sad4-bound')||'WB'; V=localStorage.getItem('sad4-voy'); }catch(e){}
 if(!ALL||!ALL.voyages) ALL=seedAll();
 if(!V||!ALL.voyages[V]) V=VOYAGES[0].id;
 Object.values(ALL.voyages).forEach(s=>{ s.forecast=s.forecast||{}; s.requests=s.requests||[]; s.notices=s.notices||[]; s.extra=s.extra||[]; s.loaded=s.loaded||{};
@@ -839,7 +839,7 @@ let askDraft=null, editCell=null;
 const expanded=new Set();                                         // load calls whose "loading via" ports are unfolded
 if(!role) role='HQ';
 if(!BOUNDS[B]) B='WB';
-function save(){ try{localStorage.setItem('sad15-all',JSON.stringify(ALL));localStorage.setItem('sad4-role',role);localStorage.setItem('sad4-bound',B);localStorage.setItem('sad4-voy',V)}catch(e){} }
+function save(){ try{localStorage.setItem('sad16-all',JSON.stringify(ALL));localStorage.setItem('sad4-role',role);localStorage.setItem('sad4-bound',B);localStorage.setItem('sad4-voy',V)}catch(e){} }
 const curVoy = () => VOYAGES.find(x=>x.id===V);
 const voyIdx = () => VOYAGES.findIndex(x=>x.id===V);
 const nextVoys = (n=3) => VOYAGES.slice(voyIdx()+1, voyIdx()+1+n);
