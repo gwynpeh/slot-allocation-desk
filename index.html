@@ -550,6 +550,9 @@ table.heat td.hm small{font-size:.72rem;color:var(--muted)}
 .hu-empty{background:var(--hu-empty)} .hu-empty b,.hu-empty small{color:var(--hu-empty-ink)!important}
 .hu-low{background:var(--hu-low)} .hu-ok{background:var(--hu-ok)}
 .hu-over{background:var(--hu-over)} .hu-over b,.hu-over small{color:var(--hu-over-ink)!important}
+.hu-far{background:var(--surface);box-shadow:inset 0 0 0 1px var(--line)} .hm-key.hu-far{box-shadow:inset 0 0 0 1px var(--muted)} .hu-far b,.hu-far small{color:var(--muted)!important}
+table.heat td.hm small{display:block;line-height:1.35} table.heat td.hm small.drv{font-weight:700;opacity:1} table.heat td.hm small:not(.drv){opacity:.8}
+table.heat .ldtag{font-style:normal;font-size:.6rem;font-weight:700;text-transform:uppercase;letter-spacing:.04em;padding:1px 5px;border-radius:4px;background:rgba(0,0,0,.08);vertical-align:2px;margin-left:3px}
 .hm-key{display:inline-block;width:12px;height:12px;border-radius:3px;vertical-align:middle;margin:0 4px 0 10px}
 .chip.dgc{background:var(--warn-soft);color:var(--warn)}
 .chip.oogc{background:var(--navy-soft);color:var(--navy)}
@@ -2195,19 +2198,25 @@ function contractPanel(){
 }
 
 /* ================= Heatmap ================= */
-let heatMetric='max';
+// Heatmap on firm numbers only: booked, or loaded once the load list is in. TEU and MT both shown; the fuller one sets the colour.
+// Only calls within a week of cut-off are coloured; later ones are still filling up and stay uncoloured.
+const HEAT_DAYS=7;                                                  // same as the forecast lock
 function heatPanel(){
   const b=B, cols=VOYAGES;
-  const val=(p)=>{ const e=effP(b,p), u=usedP(b,p), f=fcP(b,p); const v=heatMetric==='booked'?u:heatMetric==='forecast'?f:{teu:Math.max(u.teu,f.teu),mt:Math.max(u.mt,f.mt)}; return {e,v}; };
-  const cell=(e,v)=>{ if(!e.teu) return '<td class="hm hmn">—</td>'; const r=Math.max(v.teu/e.teu, e.mt?v.mt/e.mt:0), c=r>1?'hu-over':r>=0.9?'hu-ok':r>=0.6?'hu-low':'hu-empty';
-    return `<td class="hm ${c}" title="${n0(v.teu)} / ${n0(e.teu)} TEU · ${n0(v.mt)} / ${n0(e.mt)} MT"><b>${Math.round(r*100)}%</b><small>${n0(v.teu)}/${n0(e.teu)}</small></td>`; };
+  const val=p=>{ const L=loadedP(b,p); return {e:effP(b,p), v:L||usedP(b,p), ld:!!L}; };
+  const cell=(e,v,ld,far)=>{ if(!e.teu) return '<td class="hm hmn">—</td>';
+    const rt=v.teu/e.teu, rm=e.mt?v.mt/e.mt:0, r=Math.max(rt,rm), byMt=rm>rt;
+    const c=far?'hu-far':r>1?'hu-over':r>=0.9?'hu-ok':r>=0.6?'hu-low':'hu-empty';
+    return `<td class="hm ${c}" title="${ld?'Loaded':'Booked'} ${n0(v.teu)} / ${n0(e.teu)} TEU · ${n0(v.mt)} / ${n0(e.mt)} MT${far?' · more than a week to cut-off, still filling up':''}"><b>${Math.round(r*100)}%${ld?' <i class="ldtag">loaded</i>':''}</b><small class="${byMt?'':'drv'}">${n0(v.teu)} / ${n0(e.teu)} TEU</small><small class="${byMt?'drv':''}">${n0(v.mt)} / ${n0(e.mt)} MT</small></td>`; };
   const rows=BD(b).pols.map(pol=>{ const ports=[pol,...feedersOf(b,pol)];
-    return `<tr><td><span class="pname">${nm(pol)}${feedersOf(b,pol).length?`<small>incl. ports loading via ${sn(pol)}</small>`:''}</span></td>${cols.map(c=>withVoy(c.id,()=>{ const g=ports.filter(p=>origins(b).includes(p)); const e=vsum(g.map(p=>val(p).e)), v=vsum(g.map(p=>val(p).v)); return cell(e,v); })).join('')}</tr>`; }).join('');
+    return `<tr><td><span class="pname">${nm(pol)}${feedersOf(b,pol).length?`<small>incl. ports loading via ${sn(pol)}</small>`:''}</span></td>${cols.map(c=>withVoy(c.id,()=>{
+      const g=ports.filter(p=>origins(b).includes(p)), vs=g.map(val), e=vsum(vs.map(x=>x.e)), v=vsum(vs.map(x=>x.v)), ld=vs.some(x=>x.ld);
+      const co=addDays(ROT[ci(b,pol)].eta,c.wk*7-1), far=(new Date(co)-new Date(TODAY))/864e5>HEAT_DAYS;
+      return cell(e,v,ld,far); })).join('')}</tr>`; }).join('');
   return `<section class="panel" data-nav="Utilisation heatmap"><div class="ph"><div><h2>Utilisation heatmap · ${BD(b).label}</h2>
-    <p>Each load call against its allocation on every vessel in the plan. Red is space going empty, grey is on target, blue is over allocation. The higher of TEU or tonnage use sets the colour, so a weight-full port shows blue even with TEU left.</p></div>
-    <div class="field"><label for="hm-metric">Show</label><select id="hm-metric"><option value="max" ${heatMetric==='max'?'selected':''}>Higher of booked or forecast</option><option value="booked" ${heatMetric==='booked'?'selected':''}>Booked</option><option value="forecast" ${heatMetric==='forecast'?'selected':''}>Forecast</option></select></div></div>
+    <p>Booked against allocation for each load call on every vessel in the plan, switching to loaded once the load list is in. TEU and tonnage are both shown; the fuller one (in bold) sets the % and colour. Calls more than a week from cut-off are still filling up, so they stay uncoloured.</p></div></div>
     <div class="tbl-wrap"><table class="heat"><thead><tr><th>Load call</th>${cols.map(c=>`<th class="num ${c.id===V?'cur':''}">${c.vessel}<small>${c.id}${b==='WB'?'W':'E'} · ETA ${fmt(addDays(ROT[BD(b).calls[0]].eta,c.wk*7))}</small></th>`).join('')}</tr></thead><tbody>${rows}</tbody></table></div>
-    <p class="note"><span class="hm-key hu-empty"></span> under 60% · space going empty <span class="hm-key hu-low"></span> 60–90% <span class="hm-key hu-ok"></span> 90–100% · on target <span class="hm-key hu-over"></span> over allocation · rollover risk</p>
+    <p class="note"><span class="hm-key hu-empty"></span> under 60% · space going empty <span class="hm-key hu-low"></span> 60–90% <span class="hm-key hu-ok"></span> 90–100% · on target <span class="hm-key hu-over"></span> over allocation · rollover risk <span class="hm-key hu-far"></span> more than a week to cut-off</p>
   </section>`;
 }
 
@@ -2626,7 +2635,6 @@ app.addEventListener('change',e=>{
   if(t.id==='bk-fpd'||t.id==='bk-dgc'||t.id==='bk-cust') bkHint();
   if(t.dataset.stage){ const [i,k]=t.dataset.stage.split('|'), v=Math.max(0,parseFloat(t.value)||0); ALL.rules.stages[+i][k]=k==='days'?v:v/100; render(); return; }
   if(t.id==='rl-on'){ ALL.rules.on=t.checked; addLog(`HQ turned release rules ${t.checked?'on':'off'}.`); render(); return; }
-  if(t.id==='hm-metric'){ heatMetric=t.value; render(); return; }
   if(t.dataset.oncap||t.dataset.svccap){
     const isSvc=!!t.dataset.svccap, [b,x,y,dim]=(t.dataset.oncap||t.dataset.svccap).split('|'), key=K(b,x,y), raw=t.value.trim(), store=isSvc?S.svcCap:S.onCap;
     const c={...(store[key]||{})}; if(raw==='') delete c[dim]; else c[dim]=Math.max(0,parseFloat(raw)||0);
@@ -2713,6 +2721,5 @@ app.addEventListener('submit',e=>{
 
 render();
 </script>
-
 </body>
 </html>
