@@ -449,6 +449,13 @@ table.mini small.rev{display:block;font-size:.66rem;color:var(--accent)}
 tr.loadrow td{background:var(--surface-2);font-size:.84rem;padding-top:6px;padding-bottom:6px}
 .tbl-wrap tr.loadrow td:first-child{background:var(--surface-2);padding-left:44px}
 tr.loadrow .ld{white-space:nowrap}
+/* A warning row in a summary table: amber band, bar and figures, only when it has something in it. */
+tr.warnrow td{background:var(--warn-soft)!important}
+tr.warnrow td:first-child{box-shadow:inset 4px 0 0 var(--warn)!important}
+tr.warnrow .pname{color:var(--warn);font-weight:700}
+tr.warnrow .pname small{color:var(--warn);opacity:.85}
+tr.warnrow td.num b,tr.warnrow td.num .wt{color:var(--warn)}
+tr.warnrow .wi{display:inline-grid;place-items:center;width:16px;height:16px;border-radius:50%;background:var(--warn);color:#fff;font-size:.7rem;font-weight:800;margin-right:6px;vertical-align:1px}
 /* Allocation board: one row per measure, Allocation / Forecast / Booked as columns. Colour: soft allocation band, teal booked, amber/red only for warnings. */
 :root{--alloc-bg:#FAF9FF;--alloc-bg2:#F5F3FF;--bk:#0F766E}
 :root[data-theme="dark"]{--alloc-bg:#1B1934;--alloc-bg2:#221F40;--bk:#2DD4BF}
@@ -1088,14 +1095,14 @@ function reminder(){
 function pipelinePanel(){
   const b=B, nv=nextVoys(), cols=[curVoy(),...nv], tag=b==='WB'?'W':'E', span=cols.length+1+(nv.length?1:0);
   const cell=v=>`<td class="num">${vany(v)?`<b>${n0(v.teu)}</b> TEU<br><span class="wt">${n0(v.mt)} MT</span>`:'<span class="muted">—</span>'}</td>`;
-  const row=(label,sub,fn)=>{ const vals=cols.map(c=>withVoy(c.id,fn)); return `<tr><td><span class="pname">${label}${sub?`<small>${sub}</small>`:''}</span></td>${vals.map(cell).join('')}${nv.length?cell(vsum(vals.slice(1))):''}</tr>`; };
+  const row=(label,sub,fn,warn)=>{ const vals=cols.map(c=>withVoy(c.id,fn)), hot=warn&&vals.some(vany); return `<tr${hot?' class="warnrow"':''}><td><span class="pname">${hot?'<span class="wi" aria-hidden="true">!</span>':''}${label}${sub?`<small>${sub}</small>`:''}</span></td>${vals.map(cell).join('')}${nv.length?cell(vsum(vals.slice(1))):''}</tr>`; };
   let body=`<tr class="sec"><td colspan="${span}">${BD(b).label} totals</td></tr>`;
   body+=row('Allocated','',()=>vsum(origins(b).map(p=>effP(b,p))));
   body+=row('Forecast','Entered by port agents',()=>vsum(origins(b).map(p=>fcP(b,p))));
   body+=row('Booked','',()=>vsum(origins(b).map(p=>usedP(b,p))));
   if(role==='HQ'){ const cv=cols.map(c=>withVoy(c.id,()=>sumf(origins(b),p=>cmP(b,p))));
     body+=`<tr><td><span class="pname">Contribution booked<small>USD</small></span></td>${cv.map(v=>`<td class="num">${v?usd(v):'<span class="muted">—</span>'}</td>`).join('')}${nv.length?`<td class="num"><b>${usd(cv.slice(1).reduce((a,c)=>a+c,0))}</b></td>`:''}</tr>`; }
-  body+=row('Forecast above allocation','Early rollover warning',()=>vsum(origins(b).map(p=>fcOver(b,p))));
+  body+=row('Forecast above allocation','Early rollover warning',()=>vsum(origins(b).map(p=>fcOver(b,p))),true);
   body+=row('Waiting HQ approval','Booked beyond allocation',()=>vsum(origins(b).map(p=>pendP(b,p))));
   if(role!=='HQ' && loadsIn(b,role)){
     body+=row(`Your forecast · ${sn(role)}`,'',()=>fcP(b,role));
